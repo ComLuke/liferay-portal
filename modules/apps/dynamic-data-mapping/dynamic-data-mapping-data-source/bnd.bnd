@@ -1,0 +1,6 @@
+Bundle-Name: Liferay Dynamic Data Mapping Data Source
+Bundle-SymbolicName: com.liferay.dynamic.data.mapping.data.source
+Bundle-Version: 1.0.0
+Export-Package: com.liferay.dynamic.data.mapping.data.source
+Private-Package: com.liferay.dynamic.data.mapping.data.source.impl
+Include-Resource: classes
