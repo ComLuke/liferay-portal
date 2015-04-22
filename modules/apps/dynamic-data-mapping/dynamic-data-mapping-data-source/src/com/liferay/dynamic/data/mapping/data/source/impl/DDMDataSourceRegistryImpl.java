@@ -14,41 +14,49 @@
 
 package com.liferay.dynamic.data.mapping.data.source.impl;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 
 import com.liferay.dynamic.data.mapping.data.source.DDMDataSource;
 import com.liferay.dynamic.data.mapping.data.source.DDMDataSourceRegistry;
-import com.liferay.registry.Registry;
-import com.liferay.registry.RegistryUtil;
+import com.liferay.dynamic.data.mapping.data.source.util.DDMDataSourceServiceReferenceMapper;
+import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.registry.collections.ServiceTrackerCollections;
+import com.liferay.registry.collections.ServiceTrackerMap;
 
 /**
  * @author Luca Comin
  */
-
 @Component(
 	immediate = true, service = DDMDataSourceRegistry.class
 )
 public class DDMDataSourceRegistryImpl implements DDMDataSourceRegistry {
 
 	@Override
+	public String[] getSourceTypes() {
+		return ArrayUtil.toStringArray(_serviceTrackerMap.keySet());
+	}
+
+	@Override
 	public DDMDataSource getDataSource(String sourceType) {
-		Registry registry = RegistryUtil.getRegistry();
+		List<DDMDataSource> dataSources = _serviceTrackerMap.getService(
+			sourceType);
 
-		try {
-			Collection<DDMDataSource> dataSources = registry.getServices(
-				DDMDataSource.class, "(sourceType=" + sourceType + ")");
-
-			if (!dataSources.isEmpty()) {
-				return dataSources.iterator().next();
-			}
-		}
-		catch (Exception e) {
-			return null;
+		if (dataSources != null && !dataSources.isEmpty()) {
+			return dataSources.get(0);
 		}
 
 		return null;
 	}
+
+	public DDMDataSourceRegistryImpl() {
+		_serviceTrackerMap.open();
+	}
+
+	private static final ServiceTrackerMap<String, List<DDMDataSource>>
+		_serviceTrackerMap = ServiceTrackerCollections.multiValueMap(
+			DDMDataSource.class, "(sourceType=*)",
+			DDMDataSourceServiceReferenceMapper.<DDMDataSource>create());
 
 }

@@ -14,12 +14,12 @@
 
 package com.liferay.dynamic.data.mapping.data.source;
 
-import com.liferay.dynamic.data.mapping.data.source.DDMDataSource;
-
 /**
  * @author Luca Comin
  */
 public interface DDMDataSourceRegistry {
+
+	public String[] getSourceTypes();
 
 	public DDMDataSource getDataSource(String sourceType);
 
