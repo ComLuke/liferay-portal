@@ -14,12 +14,6 @@
 
 package com.liferay.dynamic.data.mapping.data.source.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import org.osgi.service.component.annotations.Component;
-
 import com.liferay.dynamic.data.mapping.data.source.DDMDataSource;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.search.BooleanClause;
@@ -45,6 +39,12 @@ import com.liferay.portlet.dynamicdatamapping.render.DDMFormFieldValueRendererRe
 import com.liferay.portlet.dynamicdatamapping.service.DDMStructureLocalServiceUtil;
 import com.liferay.portlet.dynamicdatamapping.util.DDMIndexerUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import org.osgi.service.component.annotations.Component;
+
 /**
  * @author Luca Comin
  */
@@ -53,10 +53,6 @@ import com.liferay.portlet.dynamicdatamapping.util.DDMIndexerUtil;
 	service = DDMDataSource.class
 )
 public class DDMDataSourceImpl implements DDMDataSource {
-
-	public String getType() {
-		return _TYPE;
-	}
 
 	@Override
 	public List<KeyValuePair> getData(
@@ -142,7 +138,7 @@ public class DDMDataSourceImpl implements DDMDataSource {
 
 		List<Document> documents = hits.toList();
 
-		List<KeyValuePair> results = new ArrayList<KeyValuePair>();
+		List<KeyValuePair> results = new ArrayList<>();
 
 		for (Document document : documents) {
 			long ddlRecordId = GetterUtil.getLong(
@@ -174,10 +170,14 @@ public class DDMDataSourceImpl implements DDMDataSource {
 		return results;
 	}
 
-	private static final String _SOURCE_DDL_RECORD_SET_ID =	"sourceRecordSetId";
+	public String getType() {
+		return _TYPE;
+	}
 
 	private static final String _SOURCE_DDL_KEY_FIELD_NAME =
 		"sourceKeyFieldName";
+
+	private static final String _SOURCE_DDL_RECORD_SET_ID = "sourceRecordSetId";
 
 	private static final String _SOURCE_DDL_VALUE_FIELD_NAME =
 		"sourceValueFieldName";

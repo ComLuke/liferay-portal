@@ -14,18 +14,15 @@
 
 package com.liferay.dynamic.data.mapping.data.source;
 
+import com.liferay.portal.kernel.util.KeyValuePair;
+
 import java.util.List;
 import java.util.Locale;
-
-import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.util.KeyValuePair;
 
 /**
  * @author Luca Comin
  */
 public interface DDMDataSource {
-
-	public String getType();
 
 	public List<KeyValuePair> getData(
 			String keywords, long ddmStructureId, String fieldName,
@@ -36,5 +33,7 @@ public interface DDMDataSource {
 			String keywords, long ddmStructureId, String fieldName,
 			Locale locale, boolean like, boolean andSearch, int start, int end)
 		throws Exception;
+
+	public String getType();
 
 }
