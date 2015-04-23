@@ -9,18 +9,13 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>AssetWorkflow</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>ALL_STRUCTURES_WORKFLOW_SELECT</td>
 	<td>//select[contains(@id,'workflowDefinition-1')]</td>
+	<td></td>
+</tr>
+<tr>
+	<td>WORKFLOW_STATUS</td>
+	<td>//span[@class='workflow-status']/strong</td>
 	<td></td>
 </tr>
 </tbody>

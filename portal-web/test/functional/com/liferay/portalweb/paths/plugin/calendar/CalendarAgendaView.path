@@ -9,16 +9,6 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>CalendarAgendaView</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>SCHEDULER_VIEW_AGENDA</td>
 	<td>//div[@class='yui3-widget component scheduler-view scheduler-view-agenda']</td>
 	<td></td>

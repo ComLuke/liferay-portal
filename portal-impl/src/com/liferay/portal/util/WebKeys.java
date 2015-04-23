@@ -129,6 +129,8 @@ public class WebKeys implements com.liferay.portal.kernel.util.WebKeys {
 
 	public static final String HTTPS_INITIAL = "HTTPS_INITIAL";
 
+	public static final String I18N_LANGUAGE_CODE = "I18N_LANGUAGE_CODE";
+
 	public static final String I18N_LANGUAGE_ID = "I18N_LANGUAGE_ID";
 
 	public static final String I18N_PATH = "I18N_PATH";
@@ -427,8 +429,6 @@ public class WebKeys implements com.liferay.portal.kernel.util.WebKeys {
 	public static final String WIDGET = "WIDGET";
 
 	public static final String WORDS_LIST = "WORDS_LIST";
-
-	public static final String WORKFLOW_ASSET_PREVIEW = "WORKFLOW_ASSET_PREVIEW";
 
 	public static final String WORKFLOW_DEFINITION = "WORKFLOW_DEFINITION";
 

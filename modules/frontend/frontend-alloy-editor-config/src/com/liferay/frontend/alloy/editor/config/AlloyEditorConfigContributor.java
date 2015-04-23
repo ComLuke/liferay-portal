@@ -24,6 +24,7 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.LiferayPortletURL;
+import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
@@ -32,6 +33,8 @@ import com.liferay.portal.util.PortletKeys;
 
 import java.util.Locale;
 import java.util.Map;
+
+import javax.portlet.WindowStateException;
 
 import org.osgi.service.component.annotations.Component;
 
@@ -62,52 +65,63 @@ public class AlloyEditorConfigContributor implements EditorConfigContributor {
 		jsonObject.put(
 			"contentsLanguage", contentsLanguageId.replace("iw_", "he_"));
 
-		LiferayPortletURL documentSelectorURL =
-			liferayPortletResponse.createRenderURL(
-				PortletKeys.DOCUMENT_SELECTOR);
-
-		documentSelectorURL.setParameter("mvcPath", "/view.jsp");
-		documentSelectorURL.setParameter(
-			"groupId", String.valueOf(themeDisplay.getScopeGroupId()));
-
-		String name =
-			liferayPortletResponse.getNamespace() +
-				GetterUtil.getString((String)inputEditorTaglibAttributes.get(
-					"liferay-ui:input-editor:name"));
-
-		documentSelectorURL.setParameter("eventName", name + "selectDocument");
-		documentSelectorURL.setParameter(
-			"showGroupsSelector", Boolean.TRUE.toString());
-
-		Map<String, String> fileBrowserParamsMap =
-			(Map<String, String>)inputEditorTaglibAttributes.get(
-				"liferay-ui:input-editor:fileBrowserParams");
-
-		if (fileBrowserParamsMap != null) {
-			for (Map.Entry<String, String> entry :
-					fileBrowserParamsMap.entrySet()) {
-
-				documentSelectorURL.setParameter(
-					entry.getKey(), entry.getValue());
-			}
-		}
-
-		jsonObject.put("filebrowserBrowseUrl", documentSelectorURL.toString());
-		jsonObject.put(
-			"filebrowserFlashBrowseUrl",
-			documentSelectorURL.toString() + "&Type=flash");
-		jsonObject.put(
-			"filebrowserImageBrowseLinkUrl",
-			documentSelectorURL.toString() + "&Type=image");
-		jsonObject.put(
-			"filebrowserImageBrowseUrl",
-			documentSelectorURL.toString() + "&Type=image");
-
 		String languageId = LocaleUtil.toLanguageId(themeDisplay.getLocale());
 
 		jsonObject.put("language", languageId.replace("iw_", "he_"));
+		jsonObject.put(
+			"removePlugins", "toolbar,elementspath,resize,liststyle,link");
 
-		jsonObject.put("srcNode", "#" + name);
+		if (liferayPortletResponse != null) {
+			LiferayPortletURL itemSelectorURL =
+				liferayPortletResponse.createRenderURL(
+					PortletKeys.ITEM_SELECTOR);
+
+			itemSelectorURL.setParameter("mvcPath", "/view.jsp");
+			itemSelectorURL.setParameter(
+				"groupId", String.valueOf(themeDisplay.getScopeGroupId()));
+
+			String name =
+				liferayPortletResponse.getNamespace() +
+					GetterUtil.getString(
+						(String)inputEditorTaglibAttributes.get(
+							"liferay-ui:input-editor:name"));
+
+			itemSelectorURL.setParameter("eventName", name + "selectDocument");
+			itemSelectorURL.setParameter(
+				"showGroupsSelector", Boolean.TRUE.toString());
+
+			Map<String, String> fileBrowserParamsMap =
+				(Map<String, String>)inputEditorTaglibAttributes.get(
+					"liferay-ui:input-editor:fileBrowserParams");
+
+			if (fileBrowserParamsMap != null) {
+				for (Map.Entry<String, String> entry :
+						fileBrowserParamsMap.entrySet()) {
+
+					itemSelectorURL.setParameter(
+						entry.getKey(), entry.getValue());
+				}
+			}
+
+			try {
+				itemSelectorURL.setWindowState(LiferayWindowState.POP_UP);
+			}
+			catch (WindowStateException wse) {
+			}
+
+			jsonObject.put("filebrowserBrowseUrl", itemSelectorURL.toString());
+			jsonObject.put(
+				"filebrowserFlashBrowseUrl",
+				itemSelectorURL.toString() + "&Type=flash");
+			jsonObject.put(
+				"filebrowserImageBrowseLinkUrl",
+				itemSelectorURL.toString() + "&Type=image");
+			jsonObject.put(
+				"filebrowserImageBrowseUrl",
+				itemSelectorURL.toString() + "&Type=image");
+
+			jsonObject.put("srcNode", name);
+		}
 
 		JSONObject toolbarsJSONObject = JSONFactoryUtil.createJSONObject();
 

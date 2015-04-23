@@ -16,7 +16,11 @@ package com.liferay.poshi.runner.logger;
 
 import com.liferay.poshi.runner.PoshiRunnerContext;
 import com.liferay.poshi.runner.PoshiRunnerVariablesUtil;
+import com.liferay.poshi.runner.util.StringUtil;
 import com.liferay.poshi.runner.util.Validator;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.dom4j.Element;
 
@@ -164,7 +168,7 @@ public final class SummaryLoggerHandler {
 		}
 
 		if (summary != null) {
-			return PoshiRunnerVariablesUtil.replaceCommandVars(summary);
+			return _replaceCommandVars(summary, element);
 		}
 
 		return null;
@@ -251,6 +255,47 @@ public final class SummaryLoggerHandler {
 			_getStatusLoggerElement("PASSED"));
 	}
 
+	private static String _replaceCommandVars(String token, Element element)
+		throws Exception {
+
+		Matcher matcher = _pattern.matcher(token);
+
+		while (matcher.find() &&
+			   PoshiRunnerVariablesUtil.containsKeyInExecuteMap(
+				   matcher.group(1))) {
+
+			String varName = matcher.group(1);
+
+			String varValue = PoshiRunnerVariablesUtil.getValueFromExecuteMap(
+				varName);
+
+			if ((element.attributeValue("function") != null) &&
+				varName.startsWith("locator")) {
+
+				varName = StringUtil.replace(varName, "locator", "locator-key");
+
+				String locatorKey =
+					PoshiRunnerVariablesUtil.getValueFromExecuteMap(varName);
+
+				if (Validator.isNotNull(locatorKey)) {
+					StringBuilder sb = new StringBuilder();
+
+					sb.append("<em title=\"");
+					sb.append(varValue);
+					sb.append("\">");
+					sb.append(locatorKey);
+					sb.append("</em>");
+
+					varValue = sb.toString();
+				}
+			}
+
+			token = StringUtil.replace(token, matcher.group(), varValue);
+		}
+
+		return token;
+	}
+
 	private static void _startMajorStep(Element element) {
 		_majorStepElement = element;
 	}
@@ -281,5 +326,6 @@ public final class SummaryLoggerHandler {
 	private static Element _minorStepElement;
 	private static LoggerElement _minorStepLoggerElement;
 	private static LoggerElement _minorStepsLoggerElement;
+	private static final Pattern _pattern = Pattern.compile("\\$\\{([^}]*)\\}");
 
 }

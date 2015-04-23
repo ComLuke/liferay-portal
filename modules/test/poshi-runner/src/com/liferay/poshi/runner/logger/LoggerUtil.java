@@ -18,6 +18,10 @@ import com.liferay.poshi.runner.PoshiRunnerGetterUtil;
 import com.liferay.poshi.runner.util.FileUtil;
 import com.liferay.poshi.runner.util.Validator;
 
+import java.net.URL;
+
+import java.util.List;
+
 import org.apache.commons.lang3.StringEscapeUtils;
 
 import org.openqa.selenium.Dimension;
@@ -64,6 +68,20 @@ public final class LoggerUtil {
 			sb.append("';");
 		}
 
+		List<String> attributeNames = childLoggerElement.getAttributeNames();
+
+		if (!attributeNames.isEmpty()) {
+			for (String attributeName : attributeNames) {
+				sb.append("childNode.setAttribute('");
+				sb.append(StringEscapeUtils.escapeEcmaScript(attributeName));
+				sb.append("', '");
+				sb.append(
+					StringEscapeUtils.escapeEcmaScript(
+						childLoggerElement.getAttributeValue(attributeName)));
+				sb.append("');");
+			}
+		}
+
 		sb.append("childNode.setAttribute('id', '");
 		sb.append(
 			StringEscapeUtils.escapeEcmaScript(childLoggerElement.getID()));
@@ -72,6 +90,10 @@ public final class LoggerUtil {
 		sb.append("parentNode.appendChild(childNode);");
 
 		_javascriptExecutor.executeScript(sb.toString());
+	}
+
+	public static void executeJavaScript(String script) {
+		_javascriptExecutor.executeScript(script);
 	}
 
 	public static String getClassName(LoggerElement loggerElement) {
@@ -148,6 +170,29 @@ public final class LoggerUtil {
 		sb.append("return true;");
 
 		return (boolean)_javascriptExecutor.executeScript(sb.toString());
+	}
+
+	public static void setAttribute(
+		LoggerElement loggerElement, String attributeName,
+		String attributeValue) {
+
+		if (!isLoggerStarted()) {
+			return;
+		}
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("var node = document.getElementById('");
+		sb.append(loggerElement.getID());
+		sb.append("');");
+
+		sb.append("node.setAttribute('");
+		sb.append(StringEscapeUtils.escapeEcmaScript(attributeName));
+		sb.append("', '");
+		sb.append(StringEscapeUtils.escapeEcmaScript(attributeValue));
+		sb.append("');");
+
+		_javascriptExecutor.executeScript(sb.toString());
 	}
 
 	public static void setClassName(LoggerElement loggerElement) {
@@ -251,14 +296,17 @@ public final class LoggerUtil {
 
 		_javascriptExecutor = (JavascriptExecutor)_webDriver;
 
-		_webDriver.get("file://" + _CURRENT_DIR + "/dependencies/report.html");
+		_webDriver.get("file://" + _getResourcesDir() + "html/index.html");
 	}
 
 	public static void stopLogger() throws Exception {
+		FileUtil.copyDirectory(
+			_getResourcesDir() + "css", _CURRENT_DIR + "/test-results/css");
+
 		String content = (String)_javascriptExecutor.executeScript(
 			"return document.getElementsByTagName('html')[0].outerHTML;");
 
-		FileUtil.write(_CURRENT_DIR + "/test-results/report.html", content);
+		FileUtil.write(_CURRENT_DIR + "/test-results/html/index.html", content);
 
 		if (isLoggerStarted()) {
 			_webDriver.quit();
@@ -267,8 +315,22 @@ public final class LoggerUtil {
 		}
 	}
 
+	private static String _getResourcesDir() {
+		LoggerUtil loggerUtil = new LoggerUtil();
+
+		Class<?> clazz = loggerUtil.getClass();
+
+		ClassLoader classLoader = clazz.getClassLoader();
+
+		URL url = classLoader.getResource("META-INF/resources/");
+
+		return url.getPath();
+	}
+
 	private static final String _CURRENT_DIR =
 		PoshiRunnerGetterUtil.getCanonicalPath(".");
+
+	private static final LoggerUtil _instance = new LoggerUtil();
 
 	private static JavascriptExecutor _javascriptExecutor;
 	private static WebDriver _webDriver;

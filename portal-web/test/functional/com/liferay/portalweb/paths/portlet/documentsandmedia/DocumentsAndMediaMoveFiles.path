@@ -9,16 +9,6 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>DocumentsAndMediaMoveFiles</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>MOVE_FILE</td>
 	<td>//li[@class='move-file']/span[@class='file-title']</td>
 	<td></td>

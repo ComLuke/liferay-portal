@@ -27,7 +27,7 @@ import com.liferay.wiki.model.WikiPage;
 import com.liferay.wiki.model.WikiPageResource;
 import com.liferay.wiki.service.WikiPageLocalServiceUtil;
 import com.liferay.wiki.service.WikiPageResourceLocalServiceUtil;
-import com.liferay.wiki.service.permission.WikiPagePermission;
+import com.liferay.wiki.service.permission.WikiPagePermissionChecker;
 
 import javax.portlet.PortletRequest;
 import javax.portlet.PortletURL;
@@ -45,9 +45,7 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component(
 	immediate = true,
-	property = {
-		"search.asset.type=com.liferay.wiki.model.WikiPage"
-	},
+	property = {"search.asset.type=com.liferay.wiki.model.WikiPage"},
 	service = AssetRendererFactory.class
 )
 public class WikiPageAssetRendererFactory extends BaseAssetRendererFactory {
@@ -123,7 +121,7 @@ public class WikiPageAssetRendererFactory extends BaseAssetRendererFactory {
 			PermissionChecker permissionChecker, long classPK, String actionId)
 		throws Exception {
 
-		return WikiPagePermission.contains(
+		return WikiPagePermissionChecker.contains(
 			permissionChecker, classPK, actionId);
 	}
 

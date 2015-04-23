@@ -16,6 +16,9 @@ package com.liferay.gradle.plugins;
 
 import com.liferay.gradle.plugins.extensions.LiferayExtension;
 import com.liferay.gradle.plugins.tasks.BuildCssTask;
+import com.liferay.gradle.plugins.tasks.BuildWsdlTask;
+import com.liferay.gradle.plugins.tasks.BuildXsdTask;
+import com.liferay.gradle.plugins.tasks.DirectDeployTask;
 import com.liferay.gradle.plugins.util.FileUtil;
 import com.liferay.gradle.plugins.util.GradleUtil;
 import com.liferay.gradle.plugins.util.Validator;
@@ -51,6 +54,7 @@ import org.gradle.api.internal.file.copy.CopySpecResolver;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.WarPlugin;
 import org.gradle.api.plugins.WarPluginConvention;
+import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskOutputs;
 import org.gradle.api.tasks.bundling.War;
@@ -60,11 +64,51 @@ import org.gradle.api.tasks.bundling.War;
  */
 public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 
+	public static final String DEPLOY_TASK_NAME = "deploy";
+
+	public static final String DIRECT_DEPLOY_TASK_NAME = "directDeploy";
+
 	@Override
 	public void apply(Project project) {
 		super.apply(project);
 
 		configureWebAppDirName(project);
+	}
+
+	protected Copy addTaskDeploy(Project project) {
+		Copy copy = GradleUtil.addTask(project, DEPLOY_TASK_NAME, Copy.class);
+
+		copy.dependsOn(WarPlugin.WAR_TASK_NAME);
+
+		copy.setDescription(
+			"Assembles the project into a WAR file and deploys it to Liferay.");
+		copy.setGroup(WarPlugin.WEB_APP_GROUP);
+
+		return copy;
+	}
+
+	protected DirectDeployTask addTaskDirectDeploy(Project project) {
+		DirectDeployTask directDeployTask = GradleUtil.addTask(
+			project, DIRECT_DEPLOY_TASK_NAME, DirectDeployTask.class);
+
+		directDeployTask.dependsOn(WarPlugin.WAR_TASK_NAME);
+
+		directDeployTask.setDescription(
+			"Assembles the project into a WAR file and directly deploys it " +
+				"to Liferay, skipping the auto deploy directory.");
+		directDeployTask.setGroup(WarPlugin.WEB_APP_GROUP);
+
+		return directDeployTask;
+	}
+
+	@Override
+	protected void addTasks(
+		Project project, LiferayExtension liferayExtension) {
+
+		super.addTasks(project, liferayExtension);
+
+		addTaskDeploy(project);
+		addTaskDirectDeploy(project);
 	}
 
 	@Override
@@ -100,8 +144,7 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 				@Override
 				public void execute(Project project) {
 					File serviceJarFile = new File(
-						getWebAppDir(project),
-						"WEB-INF/lib/" + project.getName() + "-service.jar");
+						getLibDir(project), project.getName() + "-service.jar");
 
 					if (serviceJarFile.exists()) {
 						GradleUtil.addDependency(
@@ -156,32 +199,149 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 	}
 
 	@Override
+	protected void configureTaskBuildWsdlRootDirs(BuildWsdlTask buildWsdlTask) {
+		FileCollection rootDirs = buildWsdlTask.getRootDirs();
+
+		if ((rootDirs != null) && !rootDirs.isEmpty()) {
+			return;
+		}
+
+		Project project = buildWsdlTask.getProject();
+
+		File rootDir = new File(getWebAppDir(project), "WEB-INF/wsdl");
+
+		buildWsdlTask.rootDirs(rootDir);
+	}
+
+	protected void configureTaskBuildXsdRootDir(BuildXsdTask buildXsdTask) {
+		if (buildXsdTask.getRootDir() != null) {
+			return;
+		}
+
+		Project project = buildXsdTask.getProject();
+
+		File rootDir = new File(getWebAppDir(project), "WEB-INF/xsd");
+
+		buildXsdTask.setRootDir(rootDir);
+	}
+
+	protected void configureTaskDeploy(
+		Project project, LiferayExtension liferayExtension) {
+
+		Copy copy = (Copy)GradleUtil.getTask(project, DEPLOY_TASK_NAME);
+
+		War war = (War)GradleUtil.getTask(project, WarPlugin.WAR_TASK_NAME);
+
+		copy.from(war.getArchivePath());
+		copy.into(liferayExtension.getDeployDir());
+	}
+
+	protected void configureTaskDirectDeploy(
+		Project project, LiferayExtension liferayExtension) {
+
+		DirectDeployTask directDeployTask =
+			(DirectDeployTask)GradleUtil.getTask(
+				project, DIRECT_DEPLOY_TASK_NAME);
+
+		configureTaskDirectDeployAppServerDeployDir(
+			directDeployTask, liferayExtension);
+		configureTaskDirectDeployAppServerLibGlobalDir(
+			directDeployTask, liferayExtension);
+		configureTaskDirectDeployAppServerPortalDir(
+			directDeployTask, liferayExtension);
+		configureTaskDirectDeployAppServerType(
+			directDeployTask, liferayExtension);
+		configureTaskDirectDeployWebAppFile(directDeployTask);
+		configureTaskDirectDeployWebAppType(directDeployTask);
+	}
+
+	protected void configureTaskDirectDeployAppServerDeployDir(
+		DirectDeployTask directDeployTask, LiferayExtension liferayExtension) {
+
+		if (directDeployTask.getAppServerDeployDir() == null) {
+			directDeployTask.setAppServerDeployDir(
+				liferayExtension.getAppServerDeployDir());
+		}
+	}
+
+	protected void configureTaskDirectDeployAppServerLibGlobalDir(
+		DirectDeployTask directDeployTask, LiferayExtension liferayExtension) {
+
+		if (directDeployTask.getAppServerLibGlobalDir() == null) {
+			directDeployTask.setAppServerLibGlobalDir(
+				liferayExtension.getAppServerLibGlobalDir());
+		}
+	}
+
+	protected void configureTaskDirectDeployAppServerPortalDir(
+		DirectDeployTask directDeployTask, LiferayExtension liferayExtension) {
+
+		if (directDeployTask.getAppServerPortalDir() == null) {
+			directDeployTask.setAppServerPortalDir(
+				liferayExtension.getAppServerPortalDir());
+		}
+	}
+
+	protected void configureTaskDirectDeployAppServerType(
+		DirectDeployTask directDeployTask, LiferayExtension liferayExtension) {
+
+		if (Validator.isNull(directDeployTask.getAppServerType())) {
+			directDeployTask.setAppServerType(
+				liferayExtension.getAppServerType());
+		}
+	}
+
+	protected void configureTaskDirectDeployWebAppFile(
+		DirectDeployTask directDeployTask) {
+
+		if (directDeployTask.getWebAppFile() != null) {
+			return;
+		}
+
+		War war = (War)GradleUtil.getTask(
+			directDeployTask.getProject(), WarPlugin.WAR_TASK_NAME);
+
+		directDeployTask.setWebAppFile(war.getArchivePath());
+	}
+
+	protected void configureTaskDirectDeployWebAppType(
+		DirectDeployTask directDeployTask) {
+
+		if (Validator.isNull(directDeployTask.getWebAppType())) {
+			directDeployTask.setWebAppType(
+				getWebAppType(directDeployTask.getProject()));
+		}
+	}
+
+	@Override
 	protected void configureTasks(
 		Project project, LiferayExtension liferayExtension) {
 
 		super.configureTasks(project, liferayExtension);
 
+		configureTaskDeploy(project, liferayExtension);
+		configureTaskDirectDeploy(project, liferayExtension);
 		configureTaskWar(project, liferayExtension);
 	}
 
 	protected void configureTaskWar(
 		Project project, LiferayExtension liferayExtension) {
 
-		War warTask = (War)GradleUtil.getTask(project, WarPlugin.WAR_TASK_NAME);
+		War war = (War)GradleUtil.getTask(project, WarPlugin.WAR_TASK_NAME);
 
-		configureTaskWarDuplicatesStrategy(warTask);
-		configureTaskWarExcludeManifest(warTask);
-		configureTaskWarFilesMatching(warTask);
-		configureTaskWarOutputs(warTask);
-		configureTaskWarRenameDependencies(warTask);
+		configureTaskWarDuplicatesStrategy(war);
+		configureTaskWarExcludeManifest(war);
+		configureTaskWarFilesMatching(war);
+		configureTaskWarOutputs(war);
+		configureTaskWarRenameDependencies(war);
 	}
 
-	protected void configureTaskWarDuplicatesStrategy(War warTask) {
-		warTask.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
+	protected void configureTaskWarDuplicatesStrategy(War war) {
+		war.setDuplicatesStrategy(DuplicatesStrategy.EXCLUDE);
 	}
 
-	protected void configureTaskWarExcludeManifest(War warTask) {
-		CopySpecInternal copySpecInternal = warTask.getRootSpec();
+	protected void configureTaskWarExcludeManifest(War war) {
+		CopySpecInternal copySpecInternal = war.getRootSpec();
 
 		for (CopySpecInternal childCopySpecInternal :
 				copySpecInternal.getChildren()) {
@@ -201,8 +361,8 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 		}
 	}
 
-	protected void configureTaskWarFilesMatching(War warTask) {
-		final Project project = warTask.getProject();
+	protected void configureTaskWarFilesMatching(War war) {
+		final Project project = war.getProject();
 
 		final Closure<String> closure = new Closure<String>(null) {
 
@@ -218,8 +378,8 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 					project, SourceSet.MAIN_SOURCE_SET_NAME);
 
 				FileTree fileTree = GradleUtil.getFilteredFileTree(
-					sourceSet.getResources(),
-					new String[] {"content/Language*.properties"}, null);
+					sourceSet.getResources(), null,
+					new String[] {"content/Language*.properties"});
 
 				Iterator<File> iterator = fileTree.iterator();
 
@@ -241,7 +401,7 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 
 		};
 
-		warTask.filesMatching(
+		war.filesMatching(
 			"WEB-INF/liferay-hook.xml",
 			new Action<FileCopyDetails>() {
 
@@ -253,14 +413,14 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 			});
 	}
 
-	protected void configureTaskWarOutputs(War warTask) {
-		TaskOutputs taskOutputs = warTask.getOutputs();
+	protected void configureTaskWarOutputs(War war) {
+		TaskOutputs taskOutputs = war.getOutputs();
 
-		taskOutputs.file(warTask.getArchivePath());
+		taskOutputs.file(war.getArchivePath());
 	}
 
-	protected void configureTaskWarRenameDependencies(War warTask) {
-		final Project project = warTask.getProject();
+	protected void configureTaskWarRenameDependencies(War war) {
+		final Project project = war.getProject();
 
 		Closure<String> closure = new Closure<String>(null) {
 
@@ -318,7 +478,7 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 
 		};
 
-		CopySpecInternal copySpecInternal = warTask.getRootSpec();
+		CopySpecInternal copySpecInternal = war.getRootSpec();
 
 		for (CopySpecInternal childCopySpecInternal :
 				copySpecInternal.getChildren()) {
@@ -373,11 +533,24 @@ public class LiferayWebAppPlugin extends LiferayJavaPlugin {
 		warPluginConvention.setWebAppDirName("docroot");
 	}
 
+	@Override
+	protected File getLibDir(Project project) {
+		return new File(getWebAppDir(project), "WEB-INF/lib");
+	}
+
 	protected File getWebAppDir(Project project) {
 		WarPluginConvention warPluginConvention = GradleUtil.getConvention(
 			project, WarPluginConvention.class);
 
 		return warPluginConvention.getWebAppDir();
+	}
+
+	protected String getWebAppType(Project project) {
+		String projectName = project.getName();
+
+		int index = projectName.lastIndexOf("-");
+
+		return projectName.substring(index + 1);
 	}
 
 }

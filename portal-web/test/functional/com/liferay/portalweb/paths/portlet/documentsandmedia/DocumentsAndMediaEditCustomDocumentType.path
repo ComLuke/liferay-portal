@@ -9,16 +9,6 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>DocumentsAndMediaEditCustomDocumentType</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>UNIQUE_DOCUMENT_ERROR_MESSAGE</td>
 	<td>//div[contains(@class,'alert alert-error') and contains(.,'Please enter a unique document name.')]</td>
 	<td></td>

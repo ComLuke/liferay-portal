@@ -21,7 +21,9 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.BrowserSniffer;
 import com.liferay.portal.kernel.servlet.BufferCacheServletResponse;
+import com.liferay.portal.kernel.servlet.FileTimestampUtil;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
+import com.liferay.portal.kernel.servlet.PortalWebResourcesUtil;
 import com.liferay.portal.kernel.servlet.ServletResponseUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.CharPool;
@@ -34,6 +36,7 @@ import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.URLUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.minifier.MinifierUtil;
 import com.liferay.portal.servlet.filters.IgnoreModuleRequestFilter;
@@ -260,7 +263,11 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 		String bundleDirName = PropsUtil.get(
 			PropsKeys.JAVASCRIPT_BUNDLE_DIR, new Filter(bundleId));
 
-		URL bundleDirURL = _servletContext.getResource(bundleDirName);
+		ServletContext portalWebResourcesServletContext =
+			PortalWebResourcesUtil.getServletContext();
+
+		URL bundleDirURL = portalWebResourcesServletContext.getResource(
+			bundleDirName);
 
 		if (bundleDirURL == null) {
 			return null;
@@ -276,18 +283,11 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 			boolean staleCache = false;
 
 			for (String fileName : fileNames) {
-				URL resourceURL = _servletContext.getResource(
+				long lastModified = FileTimestampUtil.getTimestamp(
+					portalWebResourcesServletContext,
 					bundleDirName.concat(StringPool.SLASH).concat(fileName));
 
-				if (resourceURL == null) {
-					continue;
-				}
-
-				URLConnection urlConnection = resourceURL.openConnection();
-
-				if (urlConnection.getLastModified() >
-						cacheFile.lastModified()) {
-
+				if (lastModified > cacheFile.lastModified()) {
 					staleCache = true;
 
 					break;
@@ -312,7 +312,9 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 		}
 		else {
 			content = aggregateJavaScript(
-				new ServletPaths(_servletContext, bundleDirName), fileNames);
+				new ServletPaths(
+					portalWebResourcesServletContext, bundleDirName),
+				fileNames);
 		}
 
 		response.setContentType(ContentTypes.TEXT_JAVASCRIPT);
@@ -374,8 +376,6 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 			return null;
 		}
 
-		URLConnection urlConnection = resourceURL.openConnection();
-
 		String cacheCommonFileName = getCacheFileName(request);
 
 		File cacheContentTypeFile = new File(
@@ -384,7 +384,8 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 			_tempDir, cacheCommonFileName + "_E_DATA");
 
 		if (cacheDataFile.exists() &&
-			(cacheDataFile.lastModified() >= urlConnection.getLastModified())) {
+			(cacheDataFile.lastModified() >=
+				URLUtil.getLastModifiedTime(resourceURL))) {
 
 			if (cacheContentTypeFile.exists()) {
 				String contentType = FileUtil.read(cacheContentTypeFile);
@@ -511,6 +512,19 @@ public class AggregateFilter extends IgnoreModuleRequestFilter {
 		String content = StringUtil.read(urlConnection.getInputStream());
 
 		return getJavaScriptContent(resourceURL.toString(), content);
+	}
+
+	@Override
+	protected boolean isModuleRequest(HttpServletRequest request) {
+		String requestURI = request.getRequestURI();
+
+		String contextPath = PortalWebResourcesUtil.getContextPath();
+
+		if (requestURI.startsWith(contextPath)) {
+			return false;
+		}
+
+		return super.isModuleRequest(request);
 	}
 
 	@Override

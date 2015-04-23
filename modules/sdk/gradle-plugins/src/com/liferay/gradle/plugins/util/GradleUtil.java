@@ -18,6 +18,8 @@ import groovy.lang.Closure;
 
 import java.io.File;
 
+import java.net.URL;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.gradle.api.Action;
+import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -34,6 +37,7 @@ import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionContainer;
@@ -59,6 +63,13 @@ public class GradleUtil {
 		Project project, String configurationName, File file) {
 
 		return _addDependency(project, configurationName, project.files(file));
+	}
+
+	public static Dependency addDependency(
+		Project project, String configurationName,
+		FileCollection fileCollection) {
+
+		return _addDependency(project, configurationName, fileCollection);
 	}
 
 	public static Dependency addDependency(
@@ -114,6 +125,26 @@ public class GradleUtil {
 		project.apply(args);
 	}
 
+	public static void applyScript(Project project, String name, Object obj) {
+		Map<String, Object> args = new HashMap<>();
+
+		ClassLoader classLoader = GradleUtil.class.getClassLoader();
+
+		URL url = classLoader.getResource(name);
+
+		if (url == null) {
+			throw new GradleException("Unable to apply script " + name);
+		}
+
+		args.put("from", url);
+
+		if (obj != null) {
+			args.put("to", obj);
+		}
+
+		project.apply(args);
+	}
+
 	public static void executeIfEmpty(
 		final Configuration configuration, final Action<Configuration> action) {
 
@@ -158,7 +189,7 @@ public class GradleUtil {
 	}
 
 	public static FileTree getFilteredFileTree(
-		FileTree fileTree, final String[] includes, final String[] excludes) {
+		FileTree fileTree, final String[] excludes, final String[] includes) {
 
 		Closure<Void> closure = new Closure<Void>(null) {
 
@@ -202,6 +233,14 @@ public class GradleUtil {
 		TaskContainer taskContainer = project.getTasks();
 
 		return taskContainer.getByName(name);
+	}
+
+	public static String getTaskName(String prefix, File file) {
+		String fileName = FileUtil.stripExtension(file.getName());
+
+		fileName = fileName.replaceAll("\\W", "");
+
+		return prefix + StringUtil.capitalize(fileName);
 	}
 
 	public static void removeDependencies(

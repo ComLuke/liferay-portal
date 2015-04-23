@@ -15,7 +15,8 @@
 package com.liferay.portal.kernel.settings;
 
 import com.liferay.portal.kernel.security.pacl.permission.PortalRuntimePermission;
-import com.liferay.portal.model.Layout;
+import com.liferay.registry.collections.ServiceTrackerCollections;
+import com.liferay.registry.collections.ServiceTrackerList;
 
 import java.util.List;
 
@@ -24,25 +25,6 @@ import java.util.List;
  * @author Jorge Ferrer
  */
 public class SettingsFactoryUtil {
-
-	public static void clearCache() {
-		getSettingsFactory().clearCache();
-	}
-
-	public static Settings getCompanyServiceSettings(
-		long companyId, String serviceName) {
-
-		return getSettingsFactory().getCompanyServiceSettings(
-			companyId, serviceName);
-	}
-
-	public static Settings getGroupServiceSettings(
-			long groupId, String serviceName)
-		throws SettingsException {
-
-		return getSettingsFactory().getGroupServiceSettings(
-			groupId, serviceName);
-	}
 
 	public static ArchivedSettings getPortletInstanceArchivedSettings(
 			long groupId, String portletId, String name)
@@ -59,16 +41,14 @@ public class SettingsFactoryUtil {
 			groupId, portletId);
 	}
 
-	public static Settings getPortletInstanceSettings(
-			Layout layout, String portletId)
-		throws SettingsException {
-
-		return getSettingsFactory().getPortletInstanceSettings(
-			layout, portletId);
-	}
-
 	public static Settings getServerSettings(String settingsId) {
 		return getSettingsFactory().getServerSettings(settingsId);
+	}
+
+	public static Settings getSettings(SettingsLocator settingsLocator)
+		throws SettingsException {
+
+		return getSettingsFactory().getSettings(settingsLocator);
 	}
 
 	public static SettingsDescriptor getSettingsDescriptor(String settingsId) {
@@ -78,7 +58,7 @@ public class SettingsFactoryUtil {
 	public static SettingsFactory getSettingsFactory() {
 		PortalRuntimePermission.checkGetBeanProperty(SettingsFactoryUtil.class);
 
-		return _settingsFactory;
+		return _settingsFactories.get(0);
 	}
 
 	public static void registerSettingsMetadata(
@@ -89,12 +69,8 @@ public class SettingsFactoryUtil {
 			settingsClass, null, fallbackKeys);
 	}
 
-	public void setSettingsFactory(SettingsFactory settingsFactory) {
-		PortalRuntimePermission.checkSetBeanProperty(getClass());
-
-		_settingsFactory = settingsFactory;
-	}
-
-	private static SettingsFactory _settingsFactory;
+	private static final ServiceTrackerList<SettingsFactory>
+		_settingsFactories = ServiceTrackerCollections.list(
+			SettingsFactory.class);
 
 }

@@ -541,9 +541,7 @@ public class VerifyProperties extends VerifyProcess {
 
 		// IFrame
 
-		new String[] {
-			"iframe.auth", "auth", "com.liferay.iframe.web"
-		},
+		new String[] {"iframe.auth", "auth", "com.liferay.iframe.web"},
 		new String[] {
 			"iframe.auth-type", "auth.type", "com.liferay.iframe.web"
 		},
@@ -710,9 +708,7 @@ public class VerifyProperties extends VerifyProcess {
 			"ldap.import.user.password.enabled", "import.user.password.enabled",
 			"com.liferay.portal.ldap"
 		},
-		new String[] {
-			"ldap.page.size", "page.size", "com.liferay.portal.ldap"
-		},
+		new String[] {"ldap.page.size", "page.size", "com.liferay.portal.ldap"},
 		new String[] {
 			"ldap.password.policy.enabled", "password.policy.enabled",
 			"com.liferay.portal.ldap"
@@ -720,12 +716,50 @@ public class VerifyProperties extends VerifyProcess {
 		new String[] {
 			"ldap.range.size", "range.size", "com.liferay.portal.ldap"
 		},
-		new String[] {
-			"ldap.referral", "referral", "com.liferay.portal.ldap"
-		},
+		new String[] {"ldap.referral", "referral", "com.liferay.portal.ldap"},
 		new String[] {
 			"ldap.user.ignore.attributes", "user.ignore.attributes",
 			"com.liferay.portal.ldap"
+		},
+
+		// Lucene
+
+		new String[] {
+			"lucene.analyzer.max.tokens", "analyzer.max.tokens",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.buffer.size", "buffer.size",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.commit.batch.size", "commit.batch.size",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.commit.time.interval", "commit.time.interval",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {"lucene.dir", "dir", "com.liferay.portal.search.lucene"},
+		new String[] {
+			"lucene.merge.factor", "merge.factor",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.merge.policy", "merge.policy",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.merge.scheduler", "merge.scheduler",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.store.type", "store.type",
+			"com.liferay.portal.search.lucene"
+		},
+		new String[] {
+			"lucene.store.type.file.force.mmap", "store.type.file.force.mmp",
+			"com.liferay.portal.search.lucene"
 		},
 
 		// Monitoring
@@ -980,6 +1014,10 @@ public class VerifyProperties extends VerifyProcess {
 		// XSL Content
 
 		new String[] {
+			"xsl.content.valid.url.prefixes", "valid.url.prefixes",
+			"com.liferay.xsl.content.web"
+		},
+		new String[] {
 			"xsl.content.xml.doctype.declaration.allowed",
 			"xml.doctype.declaration.allowed", "com.liferay.xsl.content.web"
 		},
@@ -1034,6 +1072,7 @@ public class VerifyProperties extends VerifyProcess {
 		"dynamic.data.mapping.structure.private.field.repeatable[" +
 			"_fieldsDisplay]",
 		"dynamic.data.mapping.template.language.types",
+		"editor.inline.editing.enabled",
 		"editor.wysiwyg.portal-web.docroot.html.portlet.asset_publisher." +
 			"configuration.jsp",
 		"editor.wysiwyg.portal-web.docroot.html.portlet.blogs.configuration." +
@@ -1052,12 +1091,13 @@ public class VerifyProperties extends VerifyProcess {
 		"editor.wysiwyg.portal-web.docroot.html.portlet.portal_settings." +
 			"email_notifications.jsp",
 		"ehcache.cache.manager.statistics.thread.pool.size",
-		"ehcache.statistics.enabled", "index.filter.search.limit",
-		"invitation.email.max.recipients", "invitation.email.message.body",
-		"invitation.email.message.subject", "javax.persistence.validation.mode",
-		"jbi.workflow.url", "json.deserializer.strict.mode",
-		"journal.article.form.translate", "journal.article.types",
-		"journal.articles.page.delta.values",
+		"ehcache.statistics.enabled",
+		"hot.deploy.hook.custom.jsp.verification.enabled",
+		"index.filter.search.limit", "invitation.email.max.recipients",
+		"invitation.email.message.body", "invitation.email.message.subject",
+		"javax.persistence.validation.mode", "jbi.workflow.url",
+		"json.deserializer.strict.mode", "journal.article.form.translate",
+		"journal.article.types", "journal.articles.page.delta.values",
 		"journal.template.language.parser[css]",
 		"journal.template.language.parser[ftl]",
 		"journal.template.language.parser[vm]",
@@ -1068,7 +1108,10 @@ public class VerifyProperties extends VerifyProcess {
 		"jpa.provider.property.eclipselink.logging.level",
 		"jpa.provider.property.eclipselink.logging.timestamp",
 		"language.display.style.options", "layout.reset.portlet.ids",
-		"layout.types", "lucene.analyzer", "lucene.store.jdbc.auto.clean.up",
+		"layout.set.form.update", "layout.types", "lucene.analyzer",
+		"lucene.cluster.index.loading.sync.timeout", "lucene.file.extractor",
+		"lucene.file.extractor.regexp.strip", "lucene.replicate.write",
+		"lucene.store.jdbc.auto.clean.up",
 		"lucene.store.jdbc.auto.clean.up.enabled",
 		"lucene.store.jdbc.auto.clean.up.interval",
 		"lucene.store.jdbc.dialect.db2", "lucene.store.jdbc.dialect.derby",
@@ -1084,10 +1127,15 @@ public class VerifyProperties extends VerifyProcess {
 		"permissions.thread.local.cache.max.size",
 		"permissions.user.check.algorithm", "persistence.provider",
 		"ratings.max.score", "ratings.min.score", "scheduler.classes",
-		"schema.run.minimal", "shard.available.names",
-		"siteminder.auth.enabled", "siteminder.import.from.ldap",
-		"siteminder.user.header", "staging.lock.enabled", "tck.url",
-		"webdav.storage.class", "webdav.storage.show.edit.url",
+		"schema.run.minimal", "service.builder.service.read.only.prefixes",
+		"shard.available.names", "siteminder.auth.enabled",
+		"siteminder.import.from.ldap", "siteminder.user.header",
+		"sites.form.add.advanced", "sites.form.add.main",
+		"sites.form.add.miscellaneous", "sites.form.add.seo",
+		"sites.form.update.advanced", "sites.form.update.main",
+		"sites.form.update.miscellaneous", "sites.form.update.seo",
+		"staging.lock.enabled", "table.mapper.cacheless.mapping.table.names",
+		"tck.url", "webdav.storage.class", "webdav.storage.show.edit.url",
 		"webdav.storage.show.view.url", "webdav.storage.tokens",
 		"wiki.email.page.added.signature", "wiki.email.page.updated.signature",
 		"xss.allow"
@@ -1102,18 +1150,10 @@ public class VerifyProperties extends VerifyProcess {
 		new String[] {
 			"amazon.license.0", "amazon.access.key.id"
 		},
-		new String[] {
-			"amazon.license.1", "amazon.access.key.id"
-		},
-		new String[] {
-			"amazon.license.2", "amazon.access.key.id"
-		},
-		new String[] {
-			"amazon.license.3", "amazon.access.key.id"
-		},
-		new String[] {
-			"cdn.host", "cdn.host.http"
-		},
+		new String[] {"amazon.license.1", "amazon.access.key.id"},
+		new String[] {"amazon.license.2", "amazon.access.key.id"},
+		new String[] {"amazon.license.3", "amazon.access.key.id"},
+		new String[] {"cdn.host", "cdn.host.http"},
 		new String[] {
 			"cluster.executor.debug.enabled", "cluster.link.debug.enabled"
 		},
@@ -1169,12 +1209,8 @@ public class VerifyProperties extends VerifyProcess {
 		new String[] {
 			"dl.hook.file.system.root.dir", "dl.store.file.system.root.dir"
 		},
-		new String[] {
-			"dl.hook.impl", "dl.store.impl"
-		},
-		new String[] {
-			"dl.hook.jcr.fetch.delay", "dl.store.jcr.fetch.delay"
-		},
+		new String[] {"dl.hook.impl", "dl.store.impl"},
+		new String[] {"dl.hook.jcr.fetch.delay", "dl.store.jcr.fetch.delay"},
 		new String[] {
 			"dl.hook.jcr.fetch.max.failures", "dl.store.jcr.fetch.max.failures"
 		},
@@ -1182,15 +1218,9 @@ public class VerifyProperties extends VerifyProcess {
 			"dl.hook.jcr.move.version.labels",
 			"dl.store.jcr.move.version.labels"
 		},
-		new String[] {
-			"dl.hook.s3.access.key", "dl.store.s3.access.key"
-		},
-		new String[] {
-			"dl.hook.s3.bucket.name", "dl.store.s3.bucket.name"
-		},
-		new String[] {
-			"dl.hook.s3.secret.key", "dl.store.s3.secret.key"
-		},
+		new String[] {"dl.hook.s3.access.key", "dl.store.s3.access.key"},
+		new String[] {"dl.hook.s3.bucket.name", "dl.store.s3.bucket.name"},
+		new String[] {"dl.hook.s3.secret.key", "dl.store.s3.secret.key"},
 		new String[] {
 			"editor.wysiwyg.portal-web.docroot.html.portlet.calendar." +
 				"edit_configuration.jsp",
@@ -1229,9 +1259,7 @@ public class VerifyProperties extends VerifyProcess {
 			"field.editable.com.liferay.portal.model.User.screenName",
 			"field.editable.user.types"
 		},
-		new String[] {
-			"icon.menu.max.display.items", "menu.max.display.items"
-		},
+		new String[] {"icon.menu.max.display.items", "menu.max.display.items"},
 		new String[] {
 			"journal.error.template.freemarker", "journal.error.template[ftl]"
 		},
@@ -1274,9 +1302,7 @@ public class VerifyProperties extends VerifyProcess {
 		new String[] {
 			"referer.url.domains.allowed", "redirect.url.domains.allowed"
 		},
-		new String[] {
-			"referer.url.ips.allowed", "redirect.url.ips.allowed"
-		},
+		new String[] {"referer.url.ips.allowed", "redirect.url.ips.allowed"},
 		new String[] {
 			"referer.url.security.mode", "redirect.url.security.mode"
 		},

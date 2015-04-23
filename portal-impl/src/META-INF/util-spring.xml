@@ -32,6 +32,9 @@
 	<bean id="com.liferay.portal.kernel.backgroundtask.BackgroundTaskStatusRegistryUtil" class="com.liferay.portal.kernel.backgroundtask.BackgroundTaskStatusRegistryUtil">
 		<property name="backgroundTaskStatusRegistry" ref="com.liferay.portal.kernel.backgroundtask.BackgroundTaskStatusRegistry" />
 	</bean>
+	<bean id="com.liferay.portal.kernel.backgroundtask.BackgroundTaskThreadLocalManager" class="com.liferay.portal.backgroundtask.BackgroundTaskThreadLocalManagerImpl">
+		<property name="permissionCheckerFactory" ref="com.liferay.portal.security.permission.PermissionCheckerFactory" />
+	</bean>
 	<bean id="com.liferay.portal.kernel.bean.BeanPropertiesUtil" class="com.liferay.portal.kernel.bean.BeanPropertiesUtil">
 		<property name="beanProperties">
 			<bean class="com.liferay.portal.bean.BeanPropertiesImpl" />
@@ -52,7 +55,10 @@
 		<constructor-arg name="portalCacheManager">
 			<bean class="com.liferay.portal.cache.ehcache.EhcachePortalCacheManager">
 				<property name="clusterAware" value="true" />
-				<property name="configPropertyKey" value="ehcache.multi.vm.config.location" />
+				<property name="configFile">
+					<util:constant static-field="com.liferay.portal.util.PropsValues.EHCACHE_MULTI_VM_CONFIG_LOCATION" />
+				</property>
+				<property name="defaultConfigFile" value="/ehcache/liferay-multi-vm-clustered.xml" />
 				<property name="mpiOnly" value="true" />
 				<property name="name">
 					<util:constant static-field="com.liferay.portal.kernel.cache.PortalCacheManagerNames.MULTI_VM" />
@@ -67,7 +73,10 @@
 		<property name="singleVMPool" ref="com.liferay.portal.kernel.cache.SingleVMPool" />
 	</bean>
 	<bean id="com.liferay.portal.kernel.cache.SingleVMPortalCacheManager" class="com.liferay.portal.cache.ehcache.EhcachePortalCacheManager">
-		<property name="configPropertyKey" value="ehcache.single.vm.config.location" />
+		<property name="configFile">
+			<util:constant static-field="com.liferay.portal.util.PropsValues.EHCACHE_SINGLE_VM_CONFIG_LOCATION" />
+		</property>
+		<property name="defaultConfigFile" value="/ehcache/liferay-single-vm.xml" />
 		<property name="name">
 			<util:constant static-field="com.liferay.portal.kernel.cache.PortalCacheManagerNames.SINGLE_VM" />
 		</property>
@@ -307,10 +316,6 @@
 		<property name="directServletRegistry">
 			<bean class="com.liferay.portal.servlet.DirectServletRegistryImpl" />
 		</property>
-	</bean>
-	<bean id="com.liferay.portal.kernel.settings.SettingsFactory" class="com.liferay.portal.settings.SettingsFactoryImpl" />
-	<bean id="com.liferay.portal.kernel.settings.SettingsFactoryUtil" class="com.liferay.portal.kernel.settings.SettingsFactoryUtil">
-		<property name="settingsFactory" ref="com.liferay.portal.kernel.settings.SettingsFactory" />
 	</bean>
 	<bean id="com.liferay.portal.kernel.spring.orm.LastSessionRecorderHelperUtil" class="com.liferay.portal.kernel.spring.orm.LastSessionRecorderHelperUtil">
 		<property name="lastSessionRecorderHelper">
@@ -640,10 +645,9 @@
 			<bean class="com.liferay.portal.security.permission.InlineSQLHelperImpl" />
 		</property>
 	</bean>
+	<bean id="com.liferay.portal.security.permission.PermissionCheckerFactory" class="com.liferay.portal.security.permission.PermissionCheckerFactoryImpl" />
 	<bean id="com.liferay.portal.security.permission.PermissionCheckerFactoryUtil" class="com.liferay.portal.security.permission.PermissionCheckerFactoryUtil">
-		<property name="permissionCheckerFactory">
-			<bean class="com.liferay.portal.security.permission.PermissionCheckerFactoryImpl" />
-		</property>
+		<property name="permissionCheckerFactory" ref="com.liferay.portal.security.permission.PermissionCheckerFactory" />
 	</bean>
 	<bean id="com.liferay.portal.security.permission.PermissionConverterUtil" class="com.liferay.portal.security.permission.PermissionConverterUtil">
 		<property name="permissionConverter">
@@ -934,6 +938,11 @@
 			<bean class="com.liferay.portlet.dynamicdatalists.util.DDLImpl" />
 		</property>
 	</bean>
+	<bean id="com.liferay.portlet.dynamicdatamapping.io.DDMFormFieldTypesJSONSerializerUtil" class="com.liferay.portlet.dynamicdatamapping.io.DDMFormFieldTypesJSONSerializerUtil">
+		<property name="DDMFormFieldTypesJSONSerializer">
+			<bean class="com.liferay.portlet.dynamicdatamapping.io.DDMFormFieldTypesJSONSerializerImpl" />
+		</property>
+	</bean>
 	<bean id="com.liferay.portlet.dynamicdatamapping.io.DDMFormJSONDeserializerUtil" class="com.liferay.portlet.dynamicdatamapping.io.DDMFormJSONDeserializerUtil">
 		<property name="DDMFormJSONDeserializer">
 			<bean class="com.liferay.portlet.dynamicdatamapping.io.DDMFormJSONDeserializerImpl" />
@@ -1111,8 +1120,6 @@
 			<bean class="com.liferay.portlet.imagegallerydisplay.display.context.IGDisplayContextProviderImpl" />
 		</property>
 	</bean>
-	<bean id="com.liferay.portlet.journal.JournalArticleCustomAttributesDisplay" class="com.liferay.portlet.journal.JournalArticleCustomAttributesDisplay" />
-	<bean id="com.liferay.portlet.journal.JournalFolderCustomAttributesDisplay" class="com.liferay.portlet.journal.JournalFolderCustomAttributesDisplay" />
 	<bean id="com.liferay.portlet.journal.atom.JournalArticleAtomCollectionProvider" class="com.liferay.portlet.journal.atom.JournalArticleAtomCollectionProvider" />
 	<bean id="com.liferay.portlet.journal.lar.JournalArticleStagedModelDataHandler" class="com.liferay.portlet.journal.lar.JournalArticleStagedModelDataHandler" />
 	<bean id="com.liferay.portlet.journal.lar.JournalFeedStagedModelDataHandler" class="com.liferay.portlet.journal.lar.JournalFeedStagedModelDataHandler" />
@@ -1142,12 +1149,14 @@
 		</property>
 	</bean>
 	<bean id="com.liferay.portlet.journal.workflow.JournalArticleWorkflowHandler" class="com.liferay.portlet.journal.workflow.JournalArticleWorkflowHandler" />
+	<bean id="com.liferay.portlet.layoutprototypes.lar.LayoutPrototypeStagedModelDataHandler" class="com.liferay.portlet.layoutprototypes.lar.LayoutPrototypeStagedModelDataHandler" />
 	<bean id="com.liferay.portlet.layoutsadmin.util.ExportImportConfigurationIndexer" class="com.liferay.portlet.layoutsadmin.util.ExportImportConfigurationIndexer" />
 	<bean id="com.liferay.portlet.layoutsadmin.util.SitemapUtil" class="com.liferay.portlet.layoutsadmin.util.SitemapUtil">
 		<property name="sitemap">
 			<bean class="com.liferay.portlet.layoutsadmin.util.SitemapImpl" />
 		</property>
 	</bean>
+	<bean id="com.liferay.portlet.layoutsetprototypes.lar.LayoutSetPrototypeStagedModelDataHandler" class="com.liferay.portlet.layoutsetprototypes.lar.LayoutSetPrototypeStagedModelDataHandler" />
 	<bean id="com.liferay.portlet.messageboards.asset.MBMessageAssetRendererFactory" class="com.liferay.portlet.messageboards.asset.MBMessageAssetRendererFactory" />
 	<bean id="com.liferay.portlet.messageboards.service.permission.MBCategoryPermission" class="com.liferay.portlet.messageboards.service.permission.MBCategoryPermission" />
 	<bean id="com.liferay.portlet.messageboards.service.permission.MBDiscussionPermission" class="com.liferay.portlet.messageboards.service.permission.MBDiscussionPermission" />

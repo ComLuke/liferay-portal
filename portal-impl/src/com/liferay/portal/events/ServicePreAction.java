@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.servlet.BrowserSnifferUtil;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
+import com.liferay.portal.kernel.servlet.PortalWebResourcesUtil;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.util.ColorSchemeFactoryUtil;
 import com.liferay.portal.kernel.util.CookieKeys;
@@ -469,7 +470,7 @@ public class ServicePreAction extends Action {
 					layout.getGroupId(), layout.isPrivateLayout(),
 					LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
 
-				if (!group.isControlPanel()) {
+				if (!group.isControlPanel() && !group.isUserPersonalPanel()) {
 					doAsGroupId = 0;
 				}
 			}
@@ -685,7 +686,9 @@ public class ServicePreAction extends Action {
 		long siteGroupId = 0;
 
 		if (layout != null) {
-			if (layout.isTypeControlPanel()) {
+			if (layout.isTypeControlPanel() ||
+				layout.isTypeUserPersonalPanel()) {
+
 				siteGroupId = PortalUtil.getSiteGroupId(scopeGroupId);
 			}
 			else {
@@ -700,7 +703,9 @@ public class ServicePreAction extends Action {
 
 		boolean wapTheme = BrowserSnifferUtil.isWap(request);
 
-		if ((layout != null) && group.isControlPanel()) {
+		if ((layout != null) &&
+			(group.isControlPanel() || group.isUserPersonalPanel())) {
+
 			String themeId = PrefsPropsUtil.getString(
 				companyId, PropsKeys.CONTROL_PANEL_LAYOUT_REGULAR_THEME_ID);
 			String colorSchemeId =
@@ -818,7 +823,8 @@ public class ServicePreAction extends Action {
 		themeDisplay.setPathFriendlyURLPrivateUser(friendlyURLPrivateUserPath);
 		themeDisplay.setPathFriendlyURLPublic(friendlyURLPublicPath);
 		themeDisplay.setPathImage(imagePath);
-		themeDisplay.setPathJavaScript(contextPath.concat("/html/js"));
+		themeDisplay.setPathJavaScript(
+			PortalWebResourcesUtil.getContextPath().concat("/html/js"));
 		themeDisplay.setPathMain(mainPath);
 		themeDisplay.setPathSound(contextPath.concat("/html/sound"));
 		themeDisplay.setPermissionChecker(permissionChecker);
@@ -1105,7 +1111,8 @@ public class ServicePreAction extends Action {
 				permissionChecker, scopeGroup, ActionKeys.VIEW_STAGING);
 
 			if (!group.isControlPanel() && !group.isUser() &&
-				!group.isUserGroup() && hasUpdateGroupPermission) {
+				!group.isUserGroup() && !group.isUserPersonalPanel() &&
+				hasUpdateGroupPermission) {
 
 				themeDisplay.setShowSiteSettingsIcon(true);
 
@@ -1189,7 +1196,7 @@ public class ServicePreAction extends Action {
 				themeDisplay.setURLPublishToLive(null);
 			}
 
-			if (group.isControlPanel()) {
+			if (group.isControlPanel() || group.isUserPersonalPanel()) {
 				themeDisplay.setShowPageSettingsIcon(false);
 				themeDisplay.setURLPublishToLive(null);
 			}

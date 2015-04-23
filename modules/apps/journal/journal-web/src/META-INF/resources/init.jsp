@@ -26,8 +26,6 @@
 <%@ taglib uri="http://liferay.com/tld/ui" prefix="liferay-ui" %>
 <%@ taglib uri="http://liferay.com/tld/util" prefix="liferay-util" %>
 
-<%@ page contentType="text/html; charset=UTF-8" %>
-
 <%@ page import="com.liferay.journal.web.asset.JournalArticleAssetRenderer" %><%@
 page import="com.liferay.journal.web.configuration.JournalWebConfigurationValues" %><%@
 page import="com.liferay.journal.web.constants.JournalPortletKeys" %><%@
@@ -54,9 +52,9 @@ page import="com.liferay.portal.kernel.language.UnicodeLanguageUtil" %><%@
 page import="com.liferay.portal.kernel.log.Log" %><%@
 page import="com.liferay.portal.kernel.log.LogFactoryUtil" %><%@
 page import="com.liferay.portal.kernel.portlet.LiferayWindowState" %><%@
+page import="com.liferay.portal.kernel.portlet.PortletProvider" %><%@
+page import="com.liferay.portal.kernel.portlet.PortletProviderUtil" %><%@
 page import="com.liferay.portal.kernel.portlet.PortletRequestModel" %><%@
-page import="com.liferay.portal.kernel.provider.PortletProvider" %><%@
-page import="com.liferay.portal.kernel.provider.PortletProviderUtil" %><%@
 page import="com.liferay.portal.kernel.search.Field" %><%@
 page import="com.liferay.portal.kernel.search.Hits" %><%@
 page import="com.liferay.portal.kernel.search.Indexer" %><%@
@@ -152,6 +150,7 @@ page import="com.liferay.portlet.journal.FeedTargetLayoutFriendlyUrlException" %
 page import="com.liferay.portlet.journal.FeedTargetPortletIdException" %><%@
 page import="com.liferay.portlet.journal.FolderNameException" %><%@
 page import="com.liferay.portlet.journal.InvalidDDMStructureException" %><%@
+page import="com.liferay.portlet.journal.NoSuchArticleException" %><%@
 page import="com.liferay.portlet.journal.NoSuchFolderException" %><%@
 page import="com.liferay.portlet.journal.model.JournalArticle" %><%@
 page import="com.liferay.portlet.journal.model.JournalArticleConstants" %><%@
@@ -174,6 +173,7 @@ page import="com.liferay.portlet.journal.service.permission.JournalPermission" %
 page import="com.liferay.portlet.journal.util.JournalContentUtil" %><%@
 page import="com.liferay.portlet.journal.util.JournalConverterUtil" %><%@
 page import="com.liferay.portlet.journal.util.JournalUtil" %><%@
+page import="com.liferay.portlet.journal.util.comparator.ArticleVersionComparator" %><%@
 page import="com.liferay.portlet.trash.model.TrashEntry" %><%@
 page import="com.liferay.portlet.trash.util.TrashUtil" %><%@
 page import="com.liferay.taglib.search.ResultRow" %><%@

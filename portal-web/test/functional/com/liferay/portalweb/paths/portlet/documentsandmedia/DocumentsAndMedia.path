@@ -9,16 +9,6 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>DocumentsAndMedia</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>BREADCRUMB_HOME</td>
 	<td>//div[contains(@id,'breadcrumbContainer')]//ul/li[1]</td>
 	<td></td>
@@ -26,11 +16,6 @@
 <tr>
 	<td>BREADCRUMB_LAST</td>
 	<td>//div[contains(@id,'breadcrumbContainer')]//li[contains(.,'${key_dmFolderName}')]</td>
-	<td></td>
-</tr>
-<tr>
-	<td>CONFIRMATION</td>
-	<td></td>
 	<td></td>
 </tr>
 <tr>

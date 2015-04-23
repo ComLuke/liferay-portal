@@ -23,6 +23,7 @@ import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.xml.Document;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.portal.kernel.xml.SAXReaderUtil;
@@ -157,12 +158,8 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 
 		addDynamicElementElement(
 			rootElement, "Text",
-			new String[] {
-				"En Text Value 1", "En Text Value 2"
-			},
-			new String[] {
-				"Pt Text Value 1", "Pt Text Value 2"
-			}
+			new String[] {"En Text Value 1", "En Text Value 2"},
+			new String[] {"Pt Text Value 1", "Pt Text Value 2"}
 		);
 		addDynamicElementElement(
 			rootElement, "TextArea",
@@ -280,12 +277,8 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 
 		addDynamicElementElement(
 			rootElement, "Text",
-			new String[] {
-				"En Text Value 1", "En Text Value 2"
-			},
-			new String[] {
-				"Pt Text Value 1", "Pt Text Value 2"
-			}
+			new String[] {"En Text Value 1", "En Text Value 2"},
+			new String[] {"Pt Text Value 1", "Pt Text Value 2"}
 		);
 		addDynamicElementElement(
 			rootElement, "TextArea",
@@ -299,10 +292,7 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 			}
 		);
 		addDynamicElementElement(
-			rootElement, "Integer",
-			new String[] {
-				"1"
-			}
+			rootElement, "Integer", new String[] {"1"}
 		);
 		addDynamicElementElement(
 			rootElement, "_fieldsDisplay",
@@ -380,10 +370,7 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 		rootElement.addAttribute("available-locales", "en_US");
 
 		addDynamicElementElement(
-			rootElement, "Text",
-			new String[] {
-				"Text Value"
-			}
+			rootElement, "Text", new String[] {"Text Value"}
 		);
 		addDynamicElementElement(
 			rootElement, "TextArea",
@@ -515,7 +502,7 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 		whenLanguageGetLanguageId(LocaleUtil.BRAZIL, "pt_BR");
 
 		whenLanguageGetAvailableLocalesThen(
-			new Locale[] {LocaleUtil.BRAZIL, LocaleUtil.US});
+			SetUtil.fromArray(new Locale[] {LocaleUtil.BRAZIL, LocaleUtil.US}));
 
 		LanguageUtil languageUtil = new LanguageUtil();
 
@@ -622,7 +609,7 @@ public class UpgradeDynamicMappingTest extends PowerMockito {
 	}
 
 	protected void whenLanguageGetAvailableLocalesThen(
-		Locale[] availableLocales) {
+		Set<Locale> availableLocales) {
 
 		when(
 			_language.getAvailableLocales()

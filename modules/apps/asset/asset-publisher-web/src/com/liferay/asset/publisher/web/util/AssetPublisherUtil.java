@@ -50,6 +50,7 @@ import com.liferay.portal.model.Group;
 import com.liferay.portal.model.GroupConstants;
 import com.liferay.portal.model.Layout;
 import com.liferay.portal.model.PortletConstants;
+import com.liferay.portal.model.PortletInstance;
 import com.liferay.portal.model.User;
 import com.liferay.portal.security.auth.PrincipalException;
 import com.liferay.portal.security.auth.PrincipalThreadLocal;
@@ -294,12 +295,12 @@ public class AssetPublisherUtil {
 					Property property = PropertyFactoryUtil.forName(
 						"portletId");
 
-					String portletId =
-						AssetPublisherPortletKeys.ASSET_PUBLISHER +
-							PortletConstants.INSTANCE_SEPARATOR +
-								StringPool.PERCENT;
+					PortletInstance portletInstance = new PortletInstance(
+						AssetPublisherPortletKeys.ASSET_PUBLISHER,
+						StringPool.PERCENT);
 
-					dynamicQuery.add(property.like(portletId));
+					dynamicQuery.add(
+						property.like(portletInstance.getPortletInstanceKey()));
 				}
 
 			});
@@ -1235,8 +1236,11 @@ public class AssetPublisherUtil {
 			String portletId)
 		throws PortalException {
 
+		Layout layout = LayoutLocalServiceUtil.fetchLayout(plid);
+
 		PortletPermissionUtil.check(
-			permissionChecker, plid, portletId, ActionKeys.SUBSCRIBE);
+			permissionChecker, 0, layout, portletId, ActionKeys.SUBSCRIBE,
+			false, false);
 
 		SubscriptionLocalServiceUtil.addSubscription(
 			permissionChecker.getUserId(), groupId,
@@ -1256,8 +1260,11 @@ public class AssetPublisherUtil {
 			PermissionChecker permissionChecker, long plid, String portletId)
 		throws PortalException {
 
+		Layout layout = LayoutLocalServiceUtil.fetchLayout(plid);
+
 		PortletPermissionUtil.check(
-			permissionChecker, plid, portletId, ActionKeys.SUBSCRIBE);
+			permissionChecker, 0, layout, portletId, ActionKeys.SUBSCRIBE,
+			false, false);
 
 		SubscriptionLocalServiceUtil.deleteSubscription(
 			permissionChecker.getUserId(),

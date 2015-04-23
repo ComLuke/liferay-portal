@@ -1355,8 +1355,7 @@
 						</then>
 					</if>
 
-					<delete dir="${liferay.home}/data" />
-					<delete dir="${liferay.home}/osgi/state" />
+					<antcall target="delete-liferay-home" />
 
 					<if>
 						<equals arg1="${test.ant.launched.by.selenium}" arg2="true" />
@@ -1980,15 +1979,7 @@ go]]></replacevalue>
 	<target name="clean-up-bundles">
 		<delete file="test.${user.name}.properties" />
 
-		<if>
-			<not>
-				<isset property="skip.delete-liferay-home" />
-			</not>
-			<then>
-				<delete dir="${liferay.home}/data" />
-				<delete dir="${liferay.home}/logs" />
-			</then>
-		</if>
+		<antcall target="delete-liferay-home" />
 
 		<delete includeemptydirs="true">
 			<fileset dir="${app.server.parent.dir}" excludes="*.zip" />
@@ -2156,6 +2147,21 @@ go]]></replacevalue>
 		</if>
 	</target>
 
+	<target name="delete-liferay-home">
+		<get-testcase-property property.name="delete.liferay.home" />
+
+		<if>
+			<not>
+				<equals arg1="delete.liferay.home" arg2="false" />
+			</not>
+			<then>
+				<delete dir="${liferay.home}/data" />
+				<delete dir="${liferay.home}/logs" />
+				<delete dir="${liferay.home}/osgi/state" />
+			</then>
+		</if>
+	</target>
+
 	<target name="deploy-extra-apps">
 		<var name="extra.apps.zip.file.name" value="${jenkins.shared.user.content.dir}/jobs/${top.level.job.name}/builds/${top.level.build.number}/downloads/extraapps.zip" />
 
@@ -2170,16 +2176,46 @@ go]]></replacevalue>
 	</target>
 
 	<target name="deploy-required-plugins">
-		<ant dir="${lp.plugins.dir}/portlets/marketplace-portlet" target="direct-deploy" />
+		<ant antfile="build-test-plugins.xml" target="deploy-simple-server-plugins">
+			<property name="plugin.types" value="portlets" />
+			<property name="plugins.includes" value="marketplace-portlet" />
+		</ant>
 
 		<get-testcase-property property.name="marketplace.staging.enabled" />
 
 		<if>
 			<equals arg1="${marketplace.staging.enabled}" arg2="true" />
 			<then>
-				<echo append="true" file="${app.server.deploy.dir}/marketplace-portlet/WEB-INF/classes/portlet.properties">
+				<path id="marketplace.portlet.war.path">
+					<fileset dir="${app.server.parent.dir}/deploy" erroronmissingdir="false">
+						<include name="marketplace-portlet-*.war" />
+					</fileset>
+				</path>
+
+				<tstamp>
+					<format property="tstamp.value" pattern="yyyyMMddkkmmssSSS" />
+				</tstamp>
+
+				<mkdir dir="${tstamp.value}" />
+
+				<property name="marketplace.portlet.war.path" value="${toString:marketplace.portlet.war.path}" />
+
+				<unzip
+					dest="${tstamp.value}"
+					src="${marketplace.portlet.war.path}"
+				/>
+
+				<echo append="true" file="${tstamp.value}/WEB-INF/classes/portlet.properties">
 
 ${marketplace.portlet.properties}</echo>
+
+				<zip
+					basedir="${tstamp.value}"
+					destfile="${marketplace.portlet.war.path}"
+					update="yes"
+				/>
+
+				<delete dir="${tstamp.value}" />
 			</then>
 		</if>
 	</target>
@@ -2816,6 +2852,54 @@ ${marketplace.portlet.properties}</echo>
 		</if>
 	</target>
 
+	<target name="prepare-extraapps-plugins">
+		<fail message="Please set the property ${jenkins.shared.user.content.dir}." unless="jenkins.shared.user.content.dir" />
+		<fail message="Please set the property ${test.build.extraapps.zip.url}." unless="test.build.extraapps.zip.url" />
+		<fail message="Please set the property ${top.level.build.number}." unless="top.level.build.number" />
+		<fail message="Please set the property ${top.level.job.name}." unless="top.level.job.name" />
+
+		<mirrors-get dest="extraapps.zip" src="${test.build.extraapps.zip.url}" />
+
+		<move file="extraapps.zip" todir="${jenkins.shared.user.content.dir}/jobs/${top.level.job.name}/builds/${top.level.build.number}/downloads" />
+	</target>
+
+	<target name="prepare-lcs-bundle">
+		<chmod perm="a+x">
+			<fileset dir="${app.server.parent.dir}/patching-tool">
+				<include name="*.sh" />
+			</fileset>
+		</chmod>
+
+		<execute dir="${app.server.parent.dir}/patching-tool">
+			patching-tool${file.suffix.bat} auto-discovery
+			patching-tool${file.suffix.bat} setup
+		</execute>
+
+		<replace file="${app.server.dir}/bin/setenv${file.suffix.bat}">
+			<replacetoken><![CDATA[-XX:MaxPermSize=256m]]></replacetoken>
+			<replacevalue><![CDATA[-XX:MaxPermSize=256m -javaagent:../../patching-tool/lib/patching-tool-agent.jar]]></replacevalue>
+		</replace>
+
+		<echo file="${lp.plugins.dir}/portlets/lcs-portlet/docroot/WEB-INF/src/portlet-ext.properties">#QA AWS
+
+osb.lcs.gateway.web.host.name=${osb.lcs.gateway.web.host.name}
+osb.lcs.gateway.web.host.port=${osb.lcs.gateway.web.host.port}
+
+osb.lcs.portlet.host.name=${osb.lcs.portlet.host.name}
+osb.lcs.portlet.host.port=${osb.lcs.portlet.host.port}
+
+osb.lcs.portlet.oauth.consumer.key=${osb.lcs.portlet.oauth.consumer.key}
+osb.lcs.portlet.oauth.consumer.secret=${osb.lcs.portlet.oauth.consumer.secret}</echo>
+
+		<property name="plugins.includes" value="lcs-portlet" />
+
+		<ant dir="${lp.plugins.dir}" target="clean" />
+
+		<ant dir="${lp.plugins.dir}" target="compile" />
+
+		<ant antfile="build-test-plugins.xml" target="deploy-simple-server-plugins" />
+	</target>
+
 	<target name="prepare-portal-ext-properties">
 		<prepare-fix-pack-bundle />
 
@@ -2975,7 +3059,7 @@ ${custom.properties}</echo>
 							META-INF/audit-spring.xml,\
 							META-INF/cluster-spring.xml,\
 							META-INF/comment-spring.xml,\
-							META-INF/editor-spring.xml,\
+							META-INF/form-navigator-spring.xml,\
 							META-INF/jcr-spring.xml,\
 							META-INF/ldap-spring.xml,\
 							META-INF/messaging-core-spring.xml,\
@@ -3323,54 +3407,6 @@ module.framework.properties.osgi.console=11312</echo>
 		</if>
 	</target>
 
-	<target name="prepare-extraapps-plugins">
-		<fail message="Please set the property ${jenkins.shared.user.content.dir}." unless="jenkins.shared.user.content.dir" />
-		<fail message="Please set the property ${test.build.extraapps.zip.url}." unless="test.build.extraapps.zip.url" />
-		<fail message="Please set the property ${top.level.build.number}." unless="top.level.build.number" />
-		<fail message="Please set the property ${top.level.job.name}." unless="top.level.job.name" />
-
-		<mirrors-get dest="extraapps.zip" src="${test.build.extraapps.zip.url}" />
-
-		<move file="extraapps.zip" todir="${jenkins.shared.user.content.dir}/jobs/${top.level.job.name}/builds/${top.level.build.number}/downloads" />
-	</target>
-
-	<target name="prepare-lcs-bundle">
-		<chmod perm="a+x">
-			<fileset dir="${app.server.parent.dir}/patching-tool">
-				<include name="*.sh" />
-			</fileset>
-		</chmod>
-
-		<execute dir="${app.server.parent.dir}/patching-tool">
-			patching-tool${file.suffix.bat} auto-discovery
-			patching-tool${file.suffix.bat} setup
-		</execute>
-
-		<replace file="${app.server.dir}/bin/setenv${file.suffix.bat}">
-			<replacetoken><![CDATA[-XX:MaxPermSize=256m]]></replacetoken>
-			<replacevalue><![CDATA[-XX:MaxPermSize=256m -javaagent:../../patching-tool/lib/patching-tool-agent.jar]]></replacevalue>
-		</replace>
-
-		<echo file="${lp.plugins.dir}/portlets/lcs-portlet/docroot/WEB-INF/src/portlet-ext.properties">#QA AWS
-
-osb.lcs.gateway.web.host.name=${osb.lcs.gateway.web.host.name}
-osb.lcs.gateway.web.host.port=${osb.lcs.gateway.web.host.port}
-
-osb.lcs.portlet.host.name=${osb.lcs.portlet.host.name}
-osb.lcs.portlet.host.port=${osb.lcs.portlet.host.port}
-
-osb.lcs.portlet.oauth.consumer.key=${osb.lcs.portlet.oauth.consumer.key}
-osb.lcs.portlet.oauth.consumer.secret=${osb.lcs.portlet.oauth.consumer.secret}</echo>
-
-		<property name="plugins.includes" value="lcs-portlet" />
-
-		<ant dir="${lp.plugins.dir}" target="clean" />
-
-		<ant dir="${lp.plugins.dir}" target="compile" />
-
-		<ant antfile="build-test-plugins.xml" target="deploy-simple-server-plugins" />
-	</target>
-
 	<target name="prepare-portal-properties">
 		<execute>
 			<![CDATA[git checkout -- portal-impl/src/portal.properties]]>
@@ -3395,6 +3431,7 @@ osb.lcs.portlet.oauth.consumer.secret=${osb.lcs.portlet.oauth.consumer.secret}</
 	<target name="prepare-selenium">
 		<delete file="portal-web/test/test-portal-web-ext.properties" />
 
+		<antcall target="prepare-selenium-app-server-properties" />
 		<antcall target="prepare-selenium-browser-properties" />
 		<antcall target="prepare-selenium-database-properties" />
 		<antcall target="prepare-selenium-email-properties" />
@@ -3538,6 +3575,17 @@ osb.lcs.portlet.oauth.consumer.secret=${osb.lcs.portlet.oauth.consumer.secret}</
 			<then>
 				<echo file="portal-web/test/test-portal-web-ext.properties" append="true">
 					test.skip.tear.down=true
+				</echo>
+			</then>
+		</if>
+	</target>
+
+	<target name="prepare-selenium-app-server-properties">
+		<if>
+			<isset property="app.server.type" />
+			<then>
+				<echo file="portal-web/test/test-portal-web-ext.properties" append="true">
+					app.server.type=${app.server.type}
 				</echo>
 			</then>
 		</if>
@@ -3747,6 +3795,15 @@ osb.lcs.portlet.oauth.consumer.secret=${osb.lcs.portlet.oauth.consumer.secret}</
 			<then>
 				<echo file="portal-web/test/test-portal-web-ext.properties" append="true">
 					database.sybase.username=${database.sybase.username}
+				</echo>
+			</then>
+		</if>
+
+		<if>
+			<isset property="database.type" />
+			<then>
+				<echo file="portal-web/test/test-portal-web-ext.properties" append="true">
+					database.type=${database.type}
 				</echo>
 			</then>
 		</if>
@@ -4631,15 +4688,7 @@ cluster.link.bind.addr["cluster-link-udp"]=127.0.0.1</echo>
 				<isset property="skip.rebuild-database" />
 			</not>
 			<then>
-				<if>
-					<not>
-						<isset property="skip.delete-liferay-home" />
-					</not>
-					<then>
-						<delete dir="${liferay.home}/data" />
-						<delete dir="${liferay.home}/logs" />
-					</then>
-				</if>
+				<antcall target="delete-liferay-home" />
 
 				<if>
 					<equals arg1="${database.type}" arg2="db2" />
@@ -4788,7 +4837,7 @@ cluster.link.bind.addr["cluster-link-udp"]=127.0.0.1</echo>
 			<arg line="log -1 --pretty=format:%cd HEAD" />
 		</exec>
 
-		<loadfile property="copyright.content" srcFile="${project.dir}/portal-impl/src/com/liferay/portal/tools/servicebuilder/dependencies/copyright.txt" />
+		<loadfile property="copyright.content" srcFile="${project.dir}/copyright.txt" />
 
 		<echo file="${app.server.dir}/webapps/ROOT/html/common/themes/bottom-test.jsp"><![CDATA[<%--
 ${copyright.content}
@@ -4842,7 +4891,6 @@ if (ppstate.equals("normal")) {
 					directoryScanner.setBasedir(project.getBaseDir());
 					directoryScanner.setExcludes(
 						new String[] {
-							"modules/apps/bookmarks/bookmarks-test/test/integration/**/*Test.java",
 							"modules/apps/social/social-networking-test/test/integration/**/*Test.java",
 							"modules/portal/portal-json-web-service-extender/test/integration/**/*Test.java",
 							"modules/portal/portal-template-freemarker/test/integration/**/*Test.java",
@@ -5767,6 +5815,8 @@ Please set "ie.driver.zip" in test.properties to point to "IEDriverServer_x64_2.
 	</target>
 
 	<target name="test-class-group">
+		<antcall target="clean-up-java-processes" inheritAll="false" />
+
 		<ant dir="portal-service" target="test-class-group" inheritAll="false" />
 
 		<ant dir="portal-impl" target="test-class-group" inheritAll="false" />

@@ -106,8 +106,6 @@ import com.liferay.portal.util.PropsUtil;
 import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.util.comparator.GroupIdComparator;
 import com.liferay.portal.util.comparator.GroupNameComparator;
-import com.liferay.portlet.blogs.model.BlogsEntry;
-import com.liferay.portlet.journal.model.JournalArticle;
 import com.liferay.util.dao.orm.CustomSQLUtil;
 
 import java.io.File;
@@ -862,15 +860,6 @@ public class GroupLocalServiceImpl extends GroupLocalServiceBaseImpl {
 			// Repositories
 
 			dlAppLocalService.deleteAllRepositories(group.getGroupId());
-
-			// Subscriptions
-
-			subscriptionLocalService.deleteSubscriptions(
-				group.getCompanyId(), BlogsEntry.class.getName(),
-				group.getGroupId());
-			subscriptionLocalService.deleteSubscriptions(
-				group.getCompanyId(), JournalArticle.class.getName(),
-				group.getGroupId());
 
 			// Teams
 
@@ -3252,7 +3241,7 @@ public class GroupLocalServiceImpl extends GroupLocalServiceBaseImpl {
 			Group.class.getName(), group.getGroupId(), null, 0,
 			assetCategoryIds, assetTagNames, false, null, null, null, null,
 			group.getDescriptiveName(), group.getDescription(), null, null,
-			null, 0, 0, null, false);
+			null, 0, 0, null);
 	}
 
 	/**
@@ -4206,7 +4195,8 @@ public class GroupLocalServiceImpl extends GroupLocalServiceBaseImpl {
 			group, role, "com.liferay.portlet.blogs",
 			new String[] {
 				ActionKeys.ADD_ENTRY, ActionKeys.PERMISSIONS,
-				ActionKeys.SUBSCRIBE});
+				ActionKeys.SUBSCRIBE
+			});
 
 		// Power User role
 
@@ -4584,21 +4574,20 @@ public class GroupLocalServiceImpl extends GroupLocalServiceBaseImpl {
 			String defaultLanguageId, String languageIds)
 		throws PortalException {
 
-		Locale[] availableLocales = LanguageUtil.getAvailableLocales();
-
-		String[] availableLanguageIds = LocaleUtil.toLanguageIds(
-			availableLocales);
-
 		String[] languageIdsArray = StringUtil.split(languageIds);
 
 		for (String languageId : languageIdsArray) {
-			if (!ArrayUtil.contains(availableLanguageIds, languageId)) {
+			if (!LanguageUtil.isAvailableLocale(
+					LocaleUtil.fromLanguageId(languageId))) {
+
 				LocaleException le = new LocaleException(
 					LocaleException.TYPE_DISPLAY_SETTINGS);
 
-				le.setSourceAvailableLocales(availableLocales);
+				le.setSourceAvailableLocales(
+					LanguageUtil.getAvailableLocales());
 				le.setTargetAvailableLocales(
-					LocaleUtil.fromLanguageIds(languageIdsArray));
+					Arrays.asList(
+						LocaleUtil.fromLanguageIds(languageIdsArray)));
 
 				throw le;
 			}
@@ -4608,9 +4597,9 @@ public class GroupLocalServiceImpl extends GroupLocalServiceBaseImpl {
 			LocaleException le = new LocaleException(
 				LocaleException.TYPE_DEFAULT);
 
-			le.setSourceAvailableLocales(availableLocales);
+			le.setSourceAvailableLocales(LanguageUtil.getAvailableLocales());
 			le.setTargetAvailableLocales(
-				LocaleUtil.fromLanguageIds(languageIdsArray));
+				Arrays.asList(LocaleUtil.fromLanguageIds(languageIdsArray)));
 
 			throw le;
 		}

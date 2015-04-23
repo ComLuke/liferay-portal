@@ -37,9 +37,7 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component(
 	immediate = true,
-	property = {
-		"javax.portlet.name="+ LanguagePortletKeys.LANGUAGE
-	},
+	property = {"javax.portlet.name="+ LanguagePortletKeys.LANGUAGE},
 	service = TemplateHandler.class
 )
 public class LanguagePortletDisplayTemplateHandler
@@ -88,17 +86,6 @@ public class LanguagePortletDisplayTemplateHandler
 		templateVariableGroup.addCollectionVariable(
 			"languages", List.class, PortletDisplayTemplateConstants.ENTRIES,
 			"language", LanguageEntry.class, "curLanguage", "longDisplayName");
-
-		String[] restrictedVariables = getRestrictedVariables(language);
-
-		TemplateVariableGroup documentServicesTemplateVariableGroup =
-			new TemplateVariableGroup("document-services", restrictedVariables);
-
-		documentServicesTemplateVariableGroup.setAutocompleteEnabled(false);
-
-		templateVariableGroups.put(
-			documentServicesTemplateVariableGroup.getLabel(),
-			documentServicesTemplateVariableGroup);
 
 		return templateVariableGroups;
 	}

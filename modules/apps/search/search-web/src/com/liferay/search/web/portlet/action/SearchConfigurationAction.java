@@ -35,9 +35,7 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component(
 	immediate = true,
-	property = {
-		"javax.portlet.name=" + SearchPortletKeys.SEARCH
-	},
+	property = {"javax.portlet.name=" + SearchPortletKeys.SEARCH},
 	service = ConfigurationAction.class
 )
 public class SearchConfigurationAction extends DefaultConfigurationAction {
@@ -55,7 +53,7 @@ public class SearchConfigurationAction extends DefaultConfigurationAction {
 		for (SearchFacet searchFacet : SearchFacetTracker.getSearchFacets()) {
 			JSONObject facetJSONObject = JSONFactoryUtil.createJSONObject();
 
-			facetJSONObject.put("className", searchFacet.getClassName());
+			facetJSONObject.put("className", searchFacet.getFacetClassName());
 			facetJSONObject.put("data", searchFacet.getJSONData(actionRequest));
 			facetJSONObject.put("fieldName", searchFacet.getFieldName());
 			facetJSONObject.put("label", searchFacet.getLabel());

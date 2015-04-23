@@ -528,38 +528,6 @@
 		<put name="portlet_content" value="/portlet/invitation/view.jsp" />
 	</definition>
 
-	<!-- Layout Prototypes -->
-
-	<definition name="portlet.layout_prototypes" extends="portlet" />
-
-	<definition name="portlet.layout_prototypes.edit_layout_prototype" extends="portlet.layout_prototypes">
-		<put name="portlet_content" value="/portlet/layout_prototypes/edit_layout_prototype.jsp" />
-	</definition>
-
-	<definition name="portlet.layout_prototypes.error" extends="portlet.layout_prototypes">
-		<put name="portlet_content" value="/portlet/layout_prototypes/error.jsp" />
-	</definition>
-
-	<definition name="portlet.layout_prototypes.view" extends="portlet.layout_prototypes">
-		<put name="portlet_content" value="/portlet/layout_prototypes/view.jsp" />
-	</definition>
-
-	<!-- Layout Set Prototypes -->
-
-	<definition name="portlet.layout_set_prototypes" extends="portlet" />
-
-	<definition name="portlet.layout_set_prototypes.edit_layout_set_prototype" extends="portlet.layout_set_prototypes">
-		<put name="portlet_content" value="/portlet/layout_set_prototypes/edit_layout_set_prototype.jsp" />
-	</definition>
-
-	<definition name="portlet.layout_set_prototypes.error" extends="portlet.layout_set_prototypes">
-		<put name="portlet_content" value="/portlet/layout_set_prototypes/error.jsp" />
-	</definition>
-
-	<definition name="portlet.layout_set_prototypes.view" extends="portlet.layout_set_prototypes">
-		<put name="portlet_content" value="/portlet/layout_set_prototypes/view.jsp" />
-	</definition>
-
 	<!-- Layouts Admin -->
 
 	<definition name="portlet.layouts_admin" extends="portlet" />
@@ -590,6 +558,10 @@
 
 	<definition name="portlet.layouts_admin.publish_layouts" extends="portlet.layouts_admin">
 		<put name="portlet_content" value="/portlet/layouts_admin/publish_layouts.jsp" />
+	</definition>
+
+	<definition name="portlet.layouts_admin.publish_layouts_simple" extends="portlet.layouts_admin">
+		<put name="portlet_content" value="/portlet/layouts_admin/publish_layouts_simple.jsp" />
 	</definition>
 
 	<!-- Login -->
@@ -800,26 +772,6 @@
 
 	<definition name="portlet.page_ratings.view" extends="portlet.page_ratings">
 		<put name="portlet_content" value="/portlet/page_ratings/view.jsp" />
-	</definition>
-
-	<!-- Password Policies Admin -->
-
-	<definition name="portlet.password_policies_admin" extends="portlet" />
-
-	<definition name="portlet.password_policies_admin.edit_password_policy" extends="portlet.password_policies_admin">
-		<put name="portlet_content" value="/portlet/password_policies_admin/edit_password_policy.jsp" />
-	</definition>
-
-	<definition name="portlet.password_policies_admin.edit_password_policy_assignments" extends="portlet.password_policies_admin">
-		<put name="portlet_content" value="/portlet/password_policies_admin/edit_password_policy_assignments.jsp" />
-	</definition>
-
-	<definition name="portlet.password_policies_admin.error" extends="portlet.password_policies_admin">
-		<put name="portlet_content" value="/portlet/password_policies_admin/error.jsp" />
-	</definition>
-
-	<definition name="portlet.password_policies_admin.view" extends="portlet.password_policies_admin">
-		<put name="portlet_content" value="/portlet/password_policies_admin/view.jsp" />
 	</definition>
 
 	<!-- Plugins Admin -->
@@ -1064,14 +1016,6 @@
 		<put name="portlet_content" value="/portlet/sites_admin/edit_site_assignments.jsp" />
 	</definition>
 
-	<definition name="portlet.sites_admin.edit_team" extends="portlet.sites_admin">
-		<put name="portlet_content" value="/portlet/sites_admin/edit_team.jsp" />
-	</definition>
-
-	<definition name="portlet.sites_admin.edit_team_assignments" extends="portlet.sites_admin">
-		<put name="portlet_content" value="/portlet/sites_admin/edit_team_assignments.jsp" />
-	</definition>
-
 	<definition name="portlet.sites_admin.edit_user_group_roles" extends="portlet.sites_admin">
 		<put name="portlet_content" value="/portlet/sites_admin/edit_user_group_roles.jsp" />
 	</definition>
@@ -1102,10 +1046,6 @@
 
 	<definition name="portlet.sites_admin.view_membership_requests" extends="portlet.sites_admin">
 		<put name="portlet_content" value="/portlet/sites_admin/view_membership_requests.jsp" />
-	</definition>
-
-	<definition name="portlet.sites_admin.view_teams" extends="portlet.sites_admin">
-		<put name="portlet_content" value="/portlet/sites_admin/view_teams.jsp" />
 	</definition>
 
 	<!-- Sites Directory -->
@@ -1246,18 +1186,6 @@
 
 	<definition name="portlet.users_admin.view" extends="portlet.users_admin">
 		<put name="portlet_content" value="/portlet/users_admin/view.jsp" />
-	</definition>
-
-	<!-- Workflow Definition Links -->
-
-	<definition name="portlet.workflow_definition_links" extends="portlet" />
-
-	<definition name="portlet.workflow_definition_links.error" extends="portlet.workflow_definition_links">
-		<put name="portlet_content" value="/portlet/workflow_definition_links/error.jsp" />
-	</definition>
-
-	<definition name="portlet.workflow_definition_links.view" extends="portlet.workflow_definition_links">
-		<put name="portlet_content" value="/portlet/workflow_definition_links/view.jsp" />
 	</definition>
 
 	<!-- Workflow Definitions -->

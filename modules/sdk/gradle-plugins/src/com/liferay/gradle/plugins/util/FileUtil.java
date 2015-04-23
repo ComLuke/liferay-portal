@@ -45,6 +45,12 @@ public class FileUtil {
 		return file.exists();
 	}
 
+	public static String getAbsolutePath(File file) {
+		String absolutePath = file.getAbsolutePath();
+
+		return absolutePath.replace('\\', '/');
+	}
+
 	public static Properties readProperties(File file) throws Exception {
 		Properties properties = new Properties();
 
@@ -78,6 +84,16 @@ public class FileUtil {
 		return relativePath.toString();
 	}
 
+	public static String stripExtension(String fileName) {
+		int index = fileName.lastIndexOf('.');
+
+		if (index != -1) {
+			fileName = fileName.substring(0, index);
+		}
+
+		return fileName;
+	}
+
 	public static void unzip(
 		Project project, final File sourceFile, final File destinationFile,
 		final int cutDirs, final String[] excludes, final String[] includes) {
@@ -101,8 +117,15 @@ public class FileUtil {
 				new OutputStreamWriter(
 					new FileOutputStream(file), StandardCharsets.UTF_8))) {
 
-			for (String line : lines) {
-				printWriter.println(line);
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i);
+
+				if ((i + 1) < lines.size()) {
+					printWriter.println(line);
+				}
+				else {
+					printWriter.print(line);
+				}
 			}
 		}
 	}

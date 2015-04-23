@@ -34,7 +34,6 @@ import com.liferay.portal.kernel.servlet.FileTimestampUtil;
 import com.liferay.portal.kernel.servlet.PortletServlet;
 import com.liferay.portal.kernel.servlet.ServletContextPool;
 import com.liferay.portal.kernel.servlet.ServletContextProvider;
-import com.liferay.portal.kernel.settings.SettingsFactoryUtil;
 import com.liferay.portal.kernel.util.ClassUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HttpUtil;
@@ -368,7 +367,6 @@ public class PortletHotDeployListener extends BaseHotDeployListener {
 
 		DirectServletRegistryUtil.clearServlets();
 		FileTimestampUtil.reset();
-		SettingsFactoryUtil.clearCache();
 
 		_portlets.put(servletContextName, portlets);
 
@@ -556,9 +554,7 @@ public class PortletHotDeployListener extends BaseHotDeployListener {
 			"language.bundle");
 
 		if (Validator.isNotNull(languageBundleName)) {
-			Locale[] locales = LanguageUtil.getAvailableLocales();
-
-			for (Locale locale : locales) {
+			for (Locale locale : LanguageUtil.getAvailableLocales()) {
 				ResourceBundle resourceBundle = ResourceBundle.getBundle(
 					languageBundleName, locale, classLoader);
 

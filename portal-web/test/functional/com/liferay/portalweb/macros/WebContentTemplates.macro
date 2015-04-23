@@ -55,7 +55,10 @@
 
 				<execute function="SelectFrame" />
 				<execute function="SelectFrame" locator1="CPWebcontentTemplatesAddtemplate#TEMPLATES_IFRAME" />
-				<execute function="AssertTextEquals#assertValue" locator1="CPWebcontentTemplatesAddtemplate#STRUCTURE" value1="${structureName}" />
+
+				<var name="key_structureName" value="${structureName}" />
+
+				<execute function="AssertElementPresent" locator1="CPWebcontentTemplatesAddtemplate#STRUCTURE" value1="${structureName}" />
 
 				<if>
 					<equals arg1="${templateLanguage}" arg2="ftl" />
@@ -122,8 +125,8 @@
 	</command>
 
 	<command name="addField">
-		<var name="fieldNameLabel" value="${fieldName?replace(' ', '_')}" />
-		<var name="fieldNameLabel" value="${fieldNameLabel?lowercase()}" />
+		<var method="StringUtil#replace('${fieldName}', ' ', '_')" name="fieldNameLabel" />
+		<var method="StringUtil#lowerCase('${fieldNameLabel}')" name="fieldNameLabel" />
 		<var name="key_fieldName" value="${fieldName}" />
 
 		<execute function="AssertClick" locator1="CPWebcontentTemplatesAddtemplate#PALETTE_FIELD" value1="${fieldName}" />

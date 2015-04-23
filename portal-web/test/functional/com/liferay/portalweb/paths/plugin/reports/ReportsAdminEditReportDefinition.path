@@ -9,16 +9,6 @@
 </thead>
 <tbody>
 <tr>
-	<td>PAGE_NAME</td>
-	<td></td>
-	<td>ReportsAdminEditReportDefinition</td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-<tr>
 	<td>DATA_SOURCE_NAME_SELECT</td>
 	<td>//select[contains(@id,'reportsportlet_sourceId')]</td>
 	<td></td>

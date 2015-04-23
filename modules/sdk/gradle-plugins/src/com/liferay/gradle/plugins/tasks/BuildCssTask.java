@@ -14,6 +14,8 @@
 
 package com.liferay.gradle.plugins.tasks;
 
+import com.liferay.gradle.plugins.util.FileUtil;
+
 import groovy.lang.Closure;
 
 import java.io.File;
@@ -70,7 +72,9 @@ public class BuildCssTask extends BasePortalToolsTask {
 
 		File cssPortalCommonDir = new File(getTmpDir(), "html/css/common");
 
-		args.add("sass.portal.common.dir=" + cssPortalCommonDir);
+		args.add(
+			"sass.portal.common.dir=" +
+				FileUtil.getAbsolutePath(cssPortalCommonDir));
 
 		return args;
 	}
@@ -168,7 +172,8 @@ public class BuildCssTask extends BasePortalToolsTask {
 
 		if (!isLegacy()) {
 			addDependency(
-				"com.liferay", "com.liferay.sass.compiler", "1.0.0-SNAPSHOT");
+				"com.liferay", "com.liferay.sass.compiler.jni",
+				"1.0.0-SNAPSHOT");
 		}
 
 		addDependency("com.liferay", "com.liferay.rtl.css", "1.0.0-SNAPSHOT");
@@ -211,7 +216,7 @@ public class BuildCssTask extends BasePortalToolsTask {
 	protected List<String> getArgs(File rootDir) {
 		List<String> args = getArgs();
 
-		args.add("sass.docroot.dir=" + rootDir);
+		args.add("sass.docroot.dir=" + FileUtil.getAbsolutePath(rootDir));
 
 		return args;
 	}

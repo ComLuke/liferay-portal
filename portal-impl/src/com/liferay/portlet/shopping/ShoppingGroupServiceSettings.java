@@ -16,7 +16,7 @@ package com.liferay.portlet.shopping;
 
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.settings.FallbackKeys;
-import com.liferay.portal.kernel.settings.GroupServiceSettings;
+import com.liferay.portal.kernel.settings.GroupServiceSettingsLocator;
 import com.liferay.portal.kernel.settings.LocalizedValuesMap;
 import com.liferay.portal.kernel.settings.ParameterMapSettings;
 import com.liferay.portal.kernel.settings.Settings;
@@ -40,7 +40,7 @@ import java.util.TreeSet;
  * @author Eduardo Garcia
  */
 @Settings.Config(settingsIds = ShoppingConstants.SERVICE_NAME)
-public class ShoppingGroupServiceSettings implements GroupServiceSettings {
+public class ShoppingGroupServiceSettings {
 
 	public static final String CC_NONE = "none";
 
@@ -92,8 +92,9 @@ public class ShoppingGroupServiceSettings implements GroupServiceSettings {
 	public static ShoppingGroupServiceSettings getInstance(long groupId)
 		throws PortalException {
 
-		Settings settings = SettingsFactoryUtil.getGroupServiceSettings(
-			groupId, ShoppingConstants.SERVICE_NAME);
+		Settings settings = SettingsFactoryUtil.getSettings(
+			new GroupServiceSettingsLocator(
+				groupId, ShoppingConstants.SERVICE_NAME));
 
 		return new ShoppingGroupServiceSettings(settings);
 	}
@@ -102,8 +103,9 @@ public class ShoppingGroupServiceSettings implements GroupServiceSettings {
 			long groupId, Map<String, String[]> parameterMap)
 		throws PortalException {
 
-		Settings settings = SettingsFactoryUtil.getGroupServiceSettings(
-			groupId, ShoppingConstants.SERVICE_NAME);
+		Settings settings = SettingsFactoryUtil.getSettings(
+			new GroupServiceSettingsLocator(
+				groupId, ShoppingConstants.SERVICE_NAME));
 
 		ParameterMapSettings parameterMapSettings = new ParameterMapSettings(
 			parameterMap, settings);

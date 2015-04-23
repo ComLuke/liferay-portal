@@ -59,9 +59,6 @@ public class PortletKeys {
 
 	public static final String DOCUMENT_LIBRARY_DISPLAY = "110";
 
-	public static final String DOCUMENT_SELECTOR =
-		"com_liferay_document_selector_web_portlet_DocumentSelectorPortlet";
-
 	public static final String DYNAMIC_DATA_LIST_DISPLAY = "169";
 
 	public static final String DYNAMIC_DATA_LISTS = "167";
@@ -82,12 +79,11 @@ public class PortletKeys {
 
 	public static final String IMAGE_UPLOADER = "195";
 
+	public static final String ITEM_SELECTOR =
+		"com_liferay_item_selector_web_portlet_ItemSelectorPortlet";
+
 	public static final String JOURNAL =
 		"com_liferay_journal_web_portlet_JournalPortlet";
-
-	public static final String LAYOUT_PROTOTYPE = "146";
-
-	public static final String LAYOUT_SET_PROTOTYPE = "149";
 
 	public static final String LAYOUTS_ADMIN = "88";
 
@@ -177,10 +173,6 @@ public class PortletKeys {
 
 	public static final String SITE_SETTINGS = "165";
 
-	public static final String SITE_TEAMS_ADMIN = "191";
-
-	public static final String SITE_TEMPLATE_SETTINGS = "192";
-
 	public static final String SITES_ADMIN = "134";
 
 	public static final String SOCIAL_ACTIVITY = "179";
@@ -200,8 +192,6 @@ public class PortletKeys {
 	public static final String USER_STATISTICS = "180";
 
 	public static final String USERS_ADMIN = "125";
-
-	public static final String WORKFLOW_CONFIGURATION = "152";
 
 	public static final String WORKFLOW_DEFINITIONS = "151";
 

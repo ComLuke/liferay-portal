@@ -274,11 +274,12 @@ request.setAttribute("edit_article.jsp-changeStructure", changeStructure);
 				</liferay-util:buffer>
 
 				<liferay-ui:form-navigator
-					categoryNames="<%= _CATEGORY_NAMES %>"
 					categorySections="<%= categorySections %>"
+					formModelBean="<%= article %>"
 					formName="fm1"
 					htmlBottom="<%= htmlBottom %>"
 					htmlTop="<%= htmlTop %>"
+					id="journal.article.form"
 					jspPath="/article/"
 					showButtons="<%= false %>"
 				/>
@@ -328,7 +329,9 @@ request.setAttribute("edit_article.jsp-changeStructure", changeStructure);
 
 				title: '<%= (article != null) ? HtmlUtil.escapeJS(article.getTitle(locale)) : StringPool.BLANK %>'
 			},
-			namespace: '<portlet:namespace />'
+			namespace: '<portlet:namespace />',
+			'strings.addTemplate': '<liferay-ui:message key="please-add-a-template-to-render-this-structure" />',
+			'strings.saveAsDraftBeforePreview': '<liferay-ui:message key="in-order-to-preview-your-changes,-the-web-content-is-saved-as-a-draft" />'
 		}
 	);
 </aui:script>
@@ -344,7 +347,3 @@ request.setAttribute("edit_article.jsp-changeStructure", changeStructure);
 		);
 	</aui:script>
 </c:if>
-
-<%!
-private static final String[] _CATEGORY_NAMES = {""};
-%>

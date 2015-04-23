@@ -604,6 +604,44 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		}
 	}
 
+	protected void checkXMLSecurity(
+		String fileName, String content, boolean isRunOutsidePortalExclusion) {
+
+		String[] xmlVulnerabitilies = new String[] {
+			"DocumentBuilderFactory.newInstance",
+			"new javax.xml.parsers.SAXParser",
+			"new org.apache.xerces.parsers.SAXParser",
+			"new org.dom4j.io.SAXReader", "new SAXParser", "new SAXReader",
+			"SAXParserFactory.newInstance", "saxParserFactory.newInstance",
+			"SAXParserFactory.newSAXParser", "saxParserFactory.newSAXParser",
+			"XMLInputFactory.newFactory", "xmlInputFactory.newFactory",
+			"XMLInputFactory.newInstance", "xmlInputFactory.newInstance"
+		};
+
+		for (String xmlVulnerabitily : xmlVulnerabitilies) {
+			if (!content.contains(xmlVulnerabitily)) {
+				continue;
+			}
+
+			StringBundler sb = new StringBundler(5);
+
+			if (isRunOutsidePortalExclusion) {
+				sb.append("Possible XXE or Quadratic Blowup security ");
+				sb.append("vulnerablity using ");
+			}
+			else {
+				sb.append("Use SecureXMLBuilderUtil.newDocumentBuilderFactory");
+				sb.append(" instead of ");
+			}
+
+			sb.append(xmlVulnerabitily);
+			sb.append(": ");
+			sb.append(fileName);
+
+			processErrorMessage(fileName, sb.toString());
+		}
+	}
+
 	@Override
 	protected String doFormat(
 			File file, String fileName, String absolutePath, String content)
@@ -775,8 +813,10 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 			processErrorMessage(fileName, "ServiceUtil: " + fileName);
 		}
 
-		if (!isExcludedPath(
-				getRunOutsidePortalExclusionPaths(), absolutePath) &&
+		boolean isRunOutsidePortalExclusion = isExcludedPath(
+			getRunOutsidePortalExclusionPaths(), absolutePath);
+
+		if (!isRunOutsidePortalExclusion &&
 			!isExcludedFile(_proxyExclusionFiles, absolutePath) &&
 			newContent.contains("import java.lang.reflect.Proxy;")) {
 
@@ -860,9 +900,8 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 
 		// LPS-39508
 
-		if (!isExcludedFile(_secureRandomExclusionFiles, absolutePath) &&
-			!isExcludedPath(
-				getRunOutsidePortalExclusionPaths(), absolutePath) &&
+		if (!isRunOutsidePortalExclusion &&
+			!isExcludedFile(_secureRandomExclusionFiles, absolutePath) &&
 			content.contains("java.security.SecureRandom") &&
 			!content.contains("javax.crypto.KeyGenerator")) {
 
@@ -933,6 +972,16 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		// LPS-49552
 
 		checkFinderCacheInterfaceMethod(fileName, newContent);
+
+		// LPS-50479
+
+		if (!fileName.contains("/test/") &&
+			!isExcludedFile(_secureXmlExclusionFiles, absolutePath)) {
+
+			checkXMLSecurity(fileName, content, isRunOutsidePortalExclusion);
+		}
+
+		newContent = getCombinedLinesContent(newContent);
 
 		newContent = fixIncorrectEmptyLineBeforeCloseCurlyBrace(
 			newContent, fileName);
@@ -1156,6 +1205,8 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		_proxyExclusionFiles = getPropertyList("proxy.excludes.files");
 		_secureRandomExclusionFiles = getPropertyList(
 			"secure.random.excludes.files");
+		_secureXmlExclusionFiles = getPropertyList(
+			"secure.xml.excludes.files");
 		_staticLogVariableExclusionFiles = getPropertyList(
 			"static.log.excludes.files");
 		_testAnnotationsExclusionFiles = getPropertyList(
@@ -1581,6 +1632,39 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 
 					String strippedQuotesLine = stripQuotes(
 						trimmedLine, CharPool.QUOTE);
+
+					strippedQuotesLine = stripQuotes(
+						strippedQuotesLine, CharPool.APOSTROPHE);
+
+					if (!trimmedLine.startsWith(StringPool.CLOSE_CURLY_BRACE) &&
+						strippedQuotesLine.contains(
+							StringPool.CLOSE_CURLY_BRACE)) {
+
+						int closeCurlyBraceCount = StringUtil.count(
+							strippedQuotesLine, StringPool.CLOSE_CURLY_BRACE);
+						int openCurlyBraceCount = StringUtil.count(
+							strippedQuotesLine, StringPool.OPEN_CURLY_BRACE);
+
+						int leadingTabCount = getLeadingTabCount(line);
+
+						if ((closeCurlyBraceCount > openCurlyBraceCount) &&
+							(leadingTabCount > 0)) {
+
+							String indent = StringPool.BLANK;
+
+							for (int i = 0; i < leadingTabCount - 1; i++) {
+								indent += StringPool.TAB;
+							}
+
+							int x = line.lastIndexOf(
+								StringPool.CLOSE_CURLY_BRACE);
+
+							return StringUtil.replace(
+								content, "\n" + line + "\n",
+								"\n" + line.substring(0, x) + "\n" + indent +
+									line.substring(x) + "\n");
+						}
+					}
 
 					if (trimmedLine.endsWith(StringPool.PLUS) &&
 						!trimmedLine.startsWith(StringPool.OPEN_PARENTHESIS)) {
@@ -2111,6 +2195,44 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		}
 
 		return line;
+	}
+
+	protected String getCombinedLinesContent(String content) {
+		Matcher matcher = _combinedLinesPattern.matcher(content);
+
+		while (matcher.find()) {
+			String tabs = matcher.group(1);
+
+			int x = matcher.start(1);
+
+			int y = content.indexOf(
+				StringPool.NEW_LINE + tabs + StringPool.CLOSE_CURLY_BRACE, x);
+
+			y = content.indexOf(StringPool.NEW_LINE, y + 1);
+
+			if (y < x) {
+				return content;
+			}
+
+			String match = content.substring(x, y);
+
+			String replacement = match;
+
+			while (replacement.contains("\n\t")) {
+				replacement = StringUtil.replace(replacement, "\n\t", "\n");
+			}
+
+			replacement = StringUtil.replace(
+				replacement, new String[] {",\n", "\n"},
+				new String[] {StringPool.COMMA_AND_SPACE, StringPool.BLANK});
+
+			if (getLineLength(replacement) <= _MAX_LINE_LENGTH) {
+				return getCombinedLinesContent(
+					StringUtil.replace(content, match, replacement));
+			}
+		}
+
+		return content;
 	}
 
 	protected String getCombinedLinesContent(
@@ -2788,8 +2910,7 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		fileNames.addAll(getFileNames(excludes, includes));
 
 		excludes = new String[] {
-			"**\\JavaDocFormatter.java", "**\\portal-client\\**",
-			"**\\tools\\ext_tmpl\\**", "**\\*_IW.java",
+			"**\\portal-client\\**", "**\\tools\\ext_tmpl\\**", "**\\*_IW.java",
 			"**\\test\\**\\*PersistenceTest.java",
 			"**\\tools\\sourceformatter\\**"
 		};
@@ -3132,6 +3253,8 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 		"\n(\t+)catch \\((.+Exception) (.+)\\) \\{\n");
 	private List<String> _checkJavaFieldTypesExclusionFiles;
 	private boolean _checkUnprocessedExceptions;
+	private Pattern _combinedLinesPattern = Pattern.compile(
+		"\n(\t*).+(=|\\]) \\{\n");
 	private List<String> _diamondOperatorExclusionFiles;
 	private List<String> _diamondOperatorExclusionPaths;
 	private Pattern _diamondOperatorPattern = Pattern.compile(
@@ -3162,6 +3285,7 @@ public class JavaSourceProcessor extends BaseSourceProcessor {
 	private List<String> _proxyExclusionFiles;
 	private Pattern _redundantCommaPattern = Pattern.compile(",\n\t+\\}");
 	private List<String> _secureRandomExclusionFiles;
+	private List<String> _secureXmlExclusionFiles;
 	private Pattern _stagedModelTypesPattern = Pattern.compile(
 		"StagedModelType\\(([a-zA-Z.]*(class|getClassName[\\(\\)]*))\\)");
 	private List<String> _staticLogVariableExclusionFiles;
