@@ -14,8 +14,9 @@
 
 package com.liferay.gradle.plugins.tasks;
 
-import com.liferay.gradle.plugins.extensions.LiferayExtension;
 import com.liferay.gradle.plugins.util.GradleUtil;
+
+import java.io.InputStream;
 
 import java.util.List;
 
@@ -34,14 +35,11 @@ public abstract class BasePortalToolsTask extends JavaExec {
 	public BasePortalToolsTask() {
 		project = getProject();
 
-		liferayExtension = GradleUtil.getExtension(
-			project, LiferayExtension.class);
-
 		Configuration configuration = GradleUtil.addConfiguration(
 			project, getConfigurationName());
 
 		configuration.setDescription(
-			"The " + getToolName() + " tool to be used in this project.");
+			"Configures the " + getToolName() + " tool for this project.");
 		configuration.setVisible(false);
 
 		GradleUtil.executeIfEmpty(
@@ -73,10 +71,7 @@ public abstract class BasePortalToolsTask extends JavaExec {
 
 	@Override
 	public void exec() {
-		super.setArgs(getArgs());
-		super.setClasspath(getClasspath());
-
-		super.exec();
+		doExec(getArgs());
 	}
 
 	@Override
@@ -97,6 +92,11 @@ public abstract class BasePortalToolsTask extends JavaExec {
 
 	@Override
 	public JavaExec setClasspath(FileCollection fileCollection) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public JavaExec setStandardInput(InputStream inputStream) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -122,13 +122,19 @@ public abstract class BasePortalToolsTask extends JavaExec {
 			project, getConfigurationName(), group, name, version, transitive);
 	}
 
+	protected void doExec(List<String> args) {
+		super.setArgs(args);
+		super.setClasspath(getClasspath());
+
+		super.exec();
+	}
+
 	protected String getConfigurationName() {
 		return "portalTools" + getToolName();
 	}
 
 	protected abstract String getToolName();
 
-	protected final LiferayExtension liferayExtension;
 	protected final Project project;
 
 }
