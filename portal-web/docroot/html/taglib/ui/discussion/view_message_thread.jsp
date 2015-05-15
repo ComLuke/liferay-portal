@@ -17,8 +17,8 @@
 <%@ include file="/html/taglib/ui/discussion/init.jsp" %>
 
 <%
-CommentSectionDisplayContext commentSectionDisplayContext = (CommentSectionDisplayContext)request.getAttribute("liferay-ui:discussion:commentSectionDisplayContext");
 Comment comment = (Comment)request.getAttribute("liferay-ui:discussion:currentComment");
+Discussion discussion = (Discussion)request.getAttribute("liferay-ui:discussion:discussion");
 
 int index = GetterUtil.getInteger(request.getAttribute("liferay-ui:discussion:index"));
 
@@ -27,12 +27,13 @@ index++;
 request.setAttribute("liferay-ui:discussion:index", new Integer(index));
 
 String randomNamespace = (String)request.getAttribute("liferay-ui:discussion:randomNamespace");
-Comment rootComment = (Comment)request.getAttribute("liferay-ui:discussion:rootComment");
 
-DiscussionTaglibHelper discussionTaglibHelper = new DiscussionTaglibHelper(request);
 DiscussionRequestHelper discussionRequestHelper = new DiscussionRequestHelper(request);
+DiscussionTaglibHelper discussionTaglibHelper = new DiscussionTaglibHelper(request);
 
-CommentTreeDisplayContext commentTreeDisplayContext = new MBCommentTreeDisplayContext(discussionTaglibHelper, discussionRequestHelper, comment);
+DiscussionPermission discussionPermission = CommentManagerUtil.getDiscussionPermission(discussionRequestHelper.getPermissionChecker());
+
+CommentTreeDisplayContext commentTreeDisplayContext = CommentDisplayContextProviderUtil.getCommentTreeDisplayContext(request, response, discussionPermission, comment);
 
 Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZone);
 %>
@@ -42,8 +43,8 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 		<div id="<%= randomNamespace %>messageScroll<%= comment.getCommentId() %>">
 			<a name="<%= randomNamespace %>message_<%= comment.getCommentId() %>"></a>
 
-			<aui:input name='<%= "messageId" + index %>' type="hidden" value="<%= comment.getCommentId() %>" />
-			<aui:input name='<%= "parentMessageId" + index %>' type="hidden" value="<%= comment.getCommentId() %>" />
+			<aui:input name='<%= "commentId" + index %>' type="hidden" value="<%= comment.getCommentId() %>" />
+			<aui:input name='<%= "parentCommentId" + index %>' type="hidden" value="<%= comment.getCommentId() %>" />
 		</div>
 
 		<div class="lfr-discussion-details">
@@ -85,6 +86,8 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 					</aui:a>
 
 					<%
+					Comment rootComment = discussion.getRootComment();
+
 					Date createDate = comment.getCreateDate();
 
 					String createDateDescription = LanguageUtil.getTimeDescription(request, System.currentTimeMillis() - createDate.getTime(), true);
@@ -152,7 +155,7 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 
 				<c:if test="<%= commentTreeDisplayContext.isEditControlsVisible() %>">
 					<div class="lfr-discussion-form lfr-discussion-form-edit" id="<%= namespace + randomNamespace %>editForm<%= index %>" style='<%= "display: none; max-width: " + ModelHintsConstants.TEXTAREA_DISPLAY_WIDTH + "px;" %>'>
-						<liferay-ui:input-editor autoCreate="<%= false %>" configKey="commentsEditor" contents="<%= comment.getBody() %>" editorName='<%= PropsUtil.get("editor.wysiwyg.portal-web.docroot.html.taglib.ui.discussion.jsp") %>' name='<%= randomNamespace + "editReplyBody" + index %>' />
+						<liferay-ui:input-editor autoCreate="<%= false %>" configKey="commentsEditor" contents="<%= comment.getBody() %>" editorName='<%= PropsUtil.get("editor.wysiwyg.portal-web.docroot.html.taglib.ui.discussion.jsp") %>' name='<%= randomNamespace + "editReplyBody" + index %>' onChangeMethod='<%= randomNamespace + index + "EditOnChange" %>' showSource="<%= false %>" />
 
 						<aui:input name='<%= "editReplyBody" + index %>' type="hidden" value="<%= comment.getBody() %>" />
 
@@ -165,6 +168,12 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 
 							<aui:button onClick="<%= taglibCancel %>" type="cancel" />
 						</aui:button-row>
+
+						<aui:script>
+							window['<%= namespace + randomNamespace + index %>EditOnChange'] = function(html) {
+								Liferay.Util.toggleDisabled('#<%= namespace + randomNamespace %>editReplyButton<%= index %>', html.trim() === '');
+							};
+						</aui:script>
 					</div>
 				</c:if>
 			</div>
@@ -188,21 +197,21 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 							+ randomNamespace + "hideEditor('" + namespace + randomNamespace + "editReplyBody" + index + "','" + namespace + randomNamespace + "editForm" + index + "');" + randomNamespace + "showEl('" + namespace + randomNamespace + "discussionMessage" + index + "')";
 						%>
 
-						<c:if test="<%= !commentSectionDisplayContext.isDiscussionMaxComments() %>">
+						<c:if test="<%= !discussion.isMaxCommentsLimitExceeded() %>">
 							<c:choose>
-								<c:when test="<%= themeDisplay.isSignedIn() || !SSOUtil.isLoginRedirectRequired(themeDisplay.getCompanyId()) %>">
+								<c:when test="<%= commentTreeDisplayContext.isReplyButtonVisible() %>">
 									<liferay-ui:icon
 										label="<%= true %>"
 										message="reply"
 										url="<%= taglibPostReplyURL %>"
-										/>
+									/>
 								</c:when>
 								<c:otherwise>
 									<liferay-ui:icon
 										label="<%= true %>"
 										message="please-sign-in-to-reply"
 										url="<%= themeDisplay.getURLSignIn() %>"
-										/>
+									/>
 								</c:otherwise>
 							</c:choose>
 						</c:if>
@@ -259,7 +268,7 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 				</div>
 
 				<div class="lfr-discussion-body">
-					<liferay-ui:input-editor autoCreate="<%= false %>" configKey="commentsEditor" contents="" editorName='<%= PropsUtil.get("editor.wysiwyg.portal-web.docroot.html.taglib.ui.discussion.jsp") %>' name='<%= randomNamespace + "postReplyBody" + index %>' onChangeMethod='<%= randomNamespace + index + "OnChange" %>' placeholder="type-your-comment-here" />
+					<liferay-ui:input-editor autoCreate="<%= false %>" configKey="commentsEditor" contents="" editorName='<%= PropsUtil.get("editor.wysiwyg.portal-web.docroot.html.taglib.ui.discussion.jsp") %>' name='<%= randomNamespace + "postReplyBody" + index %>' onChangeMethod='<%= randomNamespace + index + "ReplyOnChange" %>' placeholder="type-your-comment-here" showSource="<%= false %>" />
 
 					<aui:input name='<%= "postReplyBody" + index %>' type="hidden" />
 
@@ -274,8 +283,8 @@ Format dateFormatDateTime = FastDateFormatFactoryUtil.getDateTime(locale, timeZo
 					</aui:button-row>
 
 					<aui:script>
-						window['<%= namespace + randomNamespace + index %>OnChange'] = function(html) {
-							Liferay.Util.toggleDisabled('#<%= namespace + randomNamespace %>postReplyButton<%= index %>', (html === ''));
+						window['<%= namespace + randomNamespace + index %>ReplyOnChange'] = function(html) {
+							Liferay.Util.toggleDisabled('#<%= namespace + randomNamespace %>postReplyButton<%= index %>', html.trim() === '');
 						};
 					</aui:script>
 				</div>

@@ -441,6 +441,16 @@ public class JournalArticleLocalServiceImpl
 			updateDDMStructurePredefinedValues(
 				classPK, content, serviceContext);
 		}
+		else {
+			DDMTemplate ddmTemplate = ddmTemplateLocalService.getTemplate(
+				PortalUtil.getSiteGroupId(groupId),
+				classNameLocalService.getClassNameId(DDMStructure.class),
+				ddmTemplateKey, true);
+
+			ddmTemplateLinkLocalService.addTemplateLink(
+				classNameLocalService.getClassNameId(JournalArticle.class), id,
+				ddmTemplate.getTemplateId());
+		}
 
 		// Message boards
 
@@ -960,6 +970,16 @@ public class JournalArticleLocalServiceImpl
 
 		journalArticleImageLocalService.deleteImages(
 			article.getGroupId(), articleId, article.getVersion());
+
+		// Dynamic data mapping
+
+		if (article.getClassNameId() !=
+				classNameLocalService.getClassNameId(DDMStructure.class)) {
+
+			ddmTemplateLinkLocalService.deleteTemplateLink(
+				classNameLocalService.getClassNameId(JournalArticle.class),
+				article.getId());
+		}
 
 		// Expando
 
@@ -5261,6 +5281,23 @@ public class JournalArticleLocalServiceImpl
 			updateDDMStructurePredefinedValues(
 				article.getClassPK(), content, serviceContext);
 		}
+		else {
+			DDMTemplate ddmTemplate = ddmTemplateLocalService.getTemplate(
+				PortalUtil.getSiteGroupId(groupId),
+				classNameLocalService.getClassNameId(DDMStructure.class),
+				ddmTemplateKey, true);
+
+			if (addNewVersion) {
+				ddmTemplateLinkLocalService.addTemplateLink(
+					classNameLocalService.getClassNameId(JournalArticle.class),
+					article.getId(), ddmTemplate.getTemplateId());
+			}
+			else {
+				ddmTemplateLinkLocalService.updateTemplateLink(
+					classNameLocalService.getClassNameId(JournalArticle.class),
+					latestArticle.getId(), ddmTemplate.getTemplateId());
+			}
+		}
 
 		// Small image
 
@@ -6720,14 +6757,23 @@ public class JournalArticleLocalServiceImpl
 			"article_resource_pk",
 			String.valueOf(article.getResourcePrimKey()));
 
+		DDMStructure ddmStructure = article.getDDMStructure();
+
+		tokens.put(
+			"ddm_structure_key",
+			String.valueOf(ddmStructure.getStructureKey()));
+		tokens.put(
+			"ddm_structure_id", String.valueOf(ddmStructure.getStructureId()));
+
+		// Deprecated token
+
+		tokens.put("structure_id", article.getDDMStructureKey());
+
 		String defaultDDMTemplateKey = article.getDDMTemplateKey();
 
 		if (Validator.isNull(ddmTemplateKey)) {
 			ddmTemplateKey = defaultDDMTemplateKey;
 		}
-
-		tokens.put("structure_id", article.getDDMStructureKey());
-		tokens.put("template_id", ddmTemplateKey);
 
 		Document document = article.getDocument();
 
@@ -6831,6 +6877,16 @@ public class JournalArticleLocalServiceImpl
 					throw nste;
 				}
 			}
+
+			tokens.put(
+				"ddm_template_key",
+				String.valueOf(ddmTemplate.getTemplateKey()));
+			tokens.put(
+				"ddm_template_id", String.valueOf(ddmTemplate.getTemplateId()));
+
+			// Deprecated token
+
+			tokens.put("template_id", ddmTemplateKey);
 
 			String script = ddmTemplate.getScript();
 			String langType = ddmTemplate.getLanguage();

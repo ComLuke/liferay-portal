@@ -14,6 +14,7 @@
 
 package com.liferay.productivity.center.service.panel;
 
+import com.liferay.osgi.service.tracker.map.PropertyServiceReferenceComparator;
 import com.liferay.osgi.service.tracker.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.map.ServiceTrackerMapFactory;
 import com.liferay.productivity.center.panel.PanelApp;
@@ -25,6 +26,7 @@ import java.util.List;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -52,7 +54,8 @@ public class PanelAppRegistry {
 
 		_serviceTrackerMap = ServiceTrackerMapFactory.multiValueMap(
 			bundleContext, PanelApp.class, "(panel.category.key=*)",
-			PanelCategoryServiceReferenceMapper.<PanelApp>create());
+			new PanelCategoryServiceReferenceMapper(),
+			new ServiceRankingPropertyServiceReferenceComparator());
 
 		_serviceTrackerMap.open();
 	}
@@ -63,5 +66,22 @@ public class PanelAppRegistry {
 	}
 
 	private ServiceTrackerMap<String, List<PanelApp>> _serviceTrackerMap;
+
+	private static class ServiceRankingPropertyServiceReferenceComparator
+		extends PropertyServiceReferenceComparator<PanelApp> {
+
+		public ServiceRankingPropertyServiceReferenceComparator() {
+			super("service.ranking");
+		}
+
+		@Override
+		public int compare(
+			ServiceReference<PanelApp> serviceReference1,
+			ServiceReference<PanelApp> serviceReference2) {
+
+			return -(super.compare(serviceReference1, serviceReference2));
+		}
+
+	}
 
 }

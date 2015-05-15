@@ -47,8 +47,6 @@ public class PortletKeys {
 
 	public static final String CONTROL_PANEL_HOME = "190";
 
-	public static final String CONTROL_PANEL_MENU = "160";
-
 	public static final String DIRECTORY = "11";
 
 	public static final String DOCKBAR = "145";
@@ -125,8 +123,6 @@ public class PortletKeys {
 
 	public static final String PAGE_RATINGS = "108";
 
-	public static final String PASSWORD_POLICIES_ADMIN = "129";
-
 	public static final String PLUGINS_ADMIN = "132";
 
 	public static final String PORTAL = "90";
@@ -165,13 +161,10 @@ public class PortletKeys {
 
 	public static final String SHOPPING = "34";
 
+	public static final String SITE_ADMIN =
+		"com_liferay_site_admin_web_portlet_SiteAdminPortlet";
+
 	public static final String SITE_MEMBERS_DIRECTORY = "187";
-
-	public static final String SITE_MEMBERSHIPS_ADMIN = "174";
-
-	public static final String SITE_SETTINGS = "165";
-
-	public static final String SITES_ADMIN = "134";
 
 	public static final String SOCIAL_ACTIVITY = "179";
 
@@ -191,7 +184,8 @@ public class PortletKeys {
 
 	public static final String USERS_ADMIN = "125";
 
-	public static final String WORKFLOW_DEFINITIONS = "151";
+	public static final String WORKFLOW_DEFINITION =
+		"com_liferay_workflow_definition_web_portlet_WorkflowDefinitionPortlet";
 
 	public static final String WORKFLOW_INSTANCES = "157";
 

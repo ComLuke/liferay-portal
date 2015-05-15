@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.servlet.BrowserSnifferUtil;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
+import com.liferay.portal.kernel.servlet.PortalWebResourceConstants;
 import com.liferay.portal.kernel.servlet.PortalWebResourcesUtil;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.util.ColorSchemeFactoryUtil;
@@ -823,8 +824,17 @@ public class ServicePreAction extends Action {
 		themeDisplay.setPathFriendlyURLPrivateUser(friendlyURLPrivateUserPath);
 		themeDisplay.setPathFriendlyURLPublic(friendlyURLPublicPath);
 		themeDisplay.setPathImage(imagePath);
-		themeDisplay.setPathJavaScript(
-			PortalWebResourcesUtil.getContextPath().concat("/html/js"));
+
+		String editorsPath = PortalWebResourcesUtil.getContextPath(
+			PortalWebResourceConstants.RESOURCE_TYPE_EDITORS);
+
+		themeDisplay.setPathEditors(editorsPath.concat("/html"));
+
+		String javaScriptPath = PortalWebResourcesUtil.getContextPath(
+			PortalWebResourceConstants.RESOURCE_TYPE_JS);
+
+		themeDisplay.setPathJavaScript(javaScriptPath.concat("/html/js"));
+
 		themeDisplay.setPathMain(mainPath);
 		themeDisplay.setPathSound(contextPath.concat("/html/sound"));
 		themeDisplay.setPermissionChecker(permissionChecker);
@@ -1053,39 +1063,6 @@ public class ServicePreAction extends Action {
 						ActionKeys.ASSIGN_MEMBERS)) {
 
 					themeDisplay.setShowManageSiteMembershipsIcon(true);
-
-					LiferayPortletURL manageSiteMembershipsURL =
-						new PortletURLImpl(
-							request, PortletKeys.SITE_MEMBERSHIPS_ADMIN,
-							controlPanelPlid, PortletRequest.RENDER_PHASE);
-
-					manageSiteMembershipsURL.setDoAsGroupId(scopeGroupId);
-					manageSiteMembershipsURL.setParameter(
-						"groupId", String.valueOf(scopeGroupId));
-					manageSiteMembershipsURL.setParameter(
-						"selPlid", String.valueOf(plid));
-					manageSiteMembershipsURL.setPortletMode(PortletMode.VIEW);
-
-					if (PropsValues.
-							DOCKBAR_ADMINISTRATIVE_LINKS_SHOW_IN_POP_UP) {
-
-						manageSiteMembershipsURL.setControlPanelCategory(
-							PortletCategoryKeys.PORTLET);
-						manageSiteMembershipsURL.setWindowState(
-							LiferayWindowState.POP_UP);
-					}
-					else {
-						manageSiteMembershipsURL.setParameter(
-							"redirect", themeDisplay.getURLHome());
-						manageSiteMembershipsURL.setParameter(
-							"showBackURL", Boolean.FALSE.toString());
-						manageSiteMembershipsURL.setPlid(plid);
-						manageSiteMembershipsURL.setWindowState(
-							WindowState.MAXIMIZED);
-					}
-
-					themeDisplay.setURLManageSiteMemberships(
-						manageSiteMembershipsURL);
 				}
 				else {
 					themeDisplay.setShowManageSiteMembershipsIcon(false);
@@ -1113,35 +1090,6 @@ public class ServicePreAction extends Action {
 				hasUpdateGroupPermission) {
 
 				themeDisplay.setShowSiteSettingsIcon(true);
-
-				LiferayPortletURL siteSettingsURL = new PortletURLImpl(
-					request, PortletKeys.SITE_SETTINGS, controlPanelPlid,
-					PortletRequest.RENDER_PHASE);
-
-				siteSettingsURL.setDoAsGroupId(scopeGroupId);
-				siteSettingsURL.setParameter(
-					"struts_action", "/sites_admin/edit_site");
-				siteSettingsURL.setParameter(
-					"groupId", String.valueOf(scopeGroupId));
-				siteSettingsURL.setParameter(
-					"showBackURL", Boolean.FALSE.toString());
-				siteSettingsURL.setPortletMode(PortletMode.VIEW);
-
-				if (PropsValues.DOCKBAR_ADMINISTRATIVE_LINKS_SHOW_IN_POP_UP) {
-					siteSettingsURL.setControlPanelCategory(
-						PortletCategoryKeys.PORTLET);
-					siteSettingsURL.setParameter("closeRedirect", currentURL);
-					siteSettingsURL.setWindowState(LiferayWindowState.POP_UP);
-				}
-				else {
-					siteSettingsURL.setParameter(
-						"redirect", themeDisplay.getURLHome());
-					siteSettingsURL.setPlid(plid);
-					siteSettingsURL.setWindowState(
-						LiferayWindowState.MAXIMIZED);
-				}
-
-				themeDisplay.setURLSiteSettings(siteSettingsURL);
 			}
 
 			if (!group.isLayoutPrototype() &&
@@ -1149,43 +1097,6 @@ public class ServicePreAction extends Action {
 				 hasManageLayoutsGroupPermission || hasUpdateGroupPermission)) {
 
 				themeDisplay.setShowSiteMapSettingsIcon(true);
-
-				LiferayPortletURL siteMapSettingsURL = new PortletURLImpl(
-					request, PortletKeys.GROUP_PAGES, controlPanelPlid,
-					PortletRequest.RENDER_PHASE);
-
-				siteMapSettingsURL.setDoAsGroupId(scopeGroupId);
-				siteMapSettingsURL.setParameter(
-					"struts_action", "/group_pages/edit_layouts");
-
-				if (layout.isPrivateLayout()) {
-					siteMapSettingsURL.setParameter("tabs1", "private-pages");
-				}
-				else {
-					siteMapSettingsURL.setParameter("tabs1", "public-pages");
-				}
-
-				siteMapSettingsURL.setParameter(
-					"groupId", String.valueOf(scopeGroupId));
-				siteMapSettingsURL.setPortletMode(PortletMode.VIEW);
-
-				if (PropsValues.DOCKBAR_ADMINISTRATIVE_LINKS_SHOW_IN_POP_UP) {
-					siteMapSettingsURL.setControlPanelCategory(
-						PortletCategoryKeys.PORTLET);
-					siteMapSettingsURL.setParameter(
-						"closeRedirect", currentURL);
-					siteMapSettingsURL.setWindowState(
-						LiferayWindowState.POP_UP);
-				}
-				else {
-					siteMapSettingsURL.setParameter(
-						"redirect", themeDisplay.getURLHome());
-					siteMapSettingsURL.setPlid(plid);
-					siteMapSettingsURL.setWindowState(
-						LiferayWindowState.MAXIMIZED);
-				}
-
-				themeDisplay.setURLSiteMapSettings(siteMapSettingsURL);
 			}
 
 			if (group.hasStagingGroup() && !group.isStagingGroup()) {
@@ -1233,33 +1144,6 @@ public class ServicePreAction extends Action {
 
 					themeDisplay.setURLPublishToLive(publishToLiveURL);
 				}
-			}
-
-			Portlet myAccountPortlet = PortalUtil.getFirstMyAccountPortlet(
-				themeDisplay);
-
-			if (myAccountPortlet != null) {
-				PortletURLImpl myAccountURL = new PortletURLImpl(
-					request, myAccountPortlet.getPortletId(), controlPanelPlid,
-					PortletRequest.RENDER_PHASE);
-
-				if (signedIn) {
-					myAccountURL.setDoAsGroupId(user.getGroupId());
-				}
-				else if (scopeGroupId > 0) {
-					myAccountURL.setDoAsGroupId(scopeGroupId);
-				}
-
-				if (refererPlid > 0) {
-					myAccountURL.setRefererPlid(refererPlid);
-				}
-				else {
-					myAccountURL.setRefererPlid(plid);
-				}
-
-				myAccountURL.setWindowState(WindowState.MAXIMIZED);
-
-				themeDisplay.setURLMyAccount(myAccountURL);
 			}
 		}
 

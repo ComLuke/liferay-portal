@@ -14,78 +14,76 @@
 
 package com.liferay.gradle.plugins.service.builder;
 
-import com.liferay.portal.tools.service.builder.ServiceBuilderArgs;
+import com.liferay.gradle.util.GradleUtil;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.gradle.api.Action;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.ResolvableDependencies;
-import org.gradle.api.artifacts.dsl.DependencyHandler;
-import org.gradle.api.plugins.ExtensionContainer;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.plugins.BasePlugin;
+import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.compile.AbstractCompile;
 
 /**
  * @author Andrea Di Giorgi
  */
 public class ServiceBuilderPlugin implements Plugin<Project> {
 
+	public static final String BUILD_SERVICE_TASK_NAME = "buildService";
+
 	public static final String CONFIGURATION_NAME = "serviceBuilder";
 
 	@Override
 	public void apply(Project project) {
 		addServiceBuilderConfiguration(project);
-		addServiceBuilderExtension(project);
 
 		addBuildServiceTask(project);
+
+		project.afterEvaluate(
+			new Action<Project>() {
+
+				@Override
+				public void execute(Project project) {
+					configureBuildServiceTask(project);
+				}
+
+			});
 	}
 
-	protected Task addBuildServiceTask(Project project) {
-		TaskContainer taskContainer = project.getTasks();
+	protected BuildServiceTask addBuildServiceTask(Project project) {
+		BuildServiceTask buildServiceTask = GradleUtil.addTask(
+			project, BUILD_SERVICE_TASK_NAME, BuildServiceTask.class);
 
-		Task task = taskContainer.create(
-			"buildService", ServiceBuilderTask.class);
+		buildServiceTask.setDescription("Runs Liferay Service Builder.");
+		buildServiceTask.setGroup(BasePlugin.BUILD_GROUP);
 
-		task.setDescription("Runs Liferay Service Builder.");
-		task.setGroup("build");
-
-		return task;
+		return buildServiceTask;
 	}
 
 	protected Configuration addServiceBuilderConfiguration(
 		final Project project) {
 
-		ConfigurationContainer configurationContainer =
-			project.getConfigurations();
-
-		final Configuration configuration = configurationContainer.create(
-			CONFIGURATION_NAME);
+		Configuration configuration = GradleUtil.addConfiguration(
+			project, CONFIGURATION_NAME);
 
 		configuration.setDescription(
 			"Configures Liferay Service Builder for this project.");
 		configuration.setVisible(false);
 
-		ResolvableDependencies resolvableDependencies =
-			configuration.getIncoming();
-
-		resolvableDependencies.beforeResolve(
-			new Action<ResolvableDependencies>() {
+		GradleUtil.executeIfEmpty(
+			configuration,
+			new Action<Configuration>() {
 
 				@Override
-				public void execute(
-					ResolvableDependencies resolvableDependencies) {
-
-					Set<Dependency> dependencies =
-						configuration.getDependencies();
-
-					if (dependencies.isEmpty()) {
-						addServiceBuilderDependencies(project);
-					}
+				public void execute(Configuration configuration) {
+					addServiceBuilderDependencies(project);
 				}
 
 			});
@@ -94,19 +92,72 @@ public class ServiceBuilderPlugin implements Plugin<Project> {
 	}
 
 	protected void addServiceBuilderDependencies(Project project) {
-		DependencyHandler dependencyHandler = project.getDependencies();
-
-		dependencyHandler.add(
-			CONFIGURATION_NAME,
-			"com.liferay:com.liferay.portal.tools.service.builder:" +
-				"latest.release");
+		GradleUtil.addDependency(
+			project, CONFIGURATION_NAME, "com.liferay",
+			"com.liferay.portal.tools.service.builder", "latest.release");
 	}
 
-	protected ServiceBuilderArgs addServiceBuilderExtension(Project project) {
-		ExtensionContainer extensionContainer = project.getExtensions();
+	protected void configureBuildServiceTask(
+		BuildServiceTask buildServiceTask) {
 
-		return extensionContainer.create(
-			"serviceBuilder", ServiceBuilderArgs.class);
+		FileCollection classPath = buildServiceTask.getClasspath();
+
+		if (!classPath.isEmpty()) {
+			return;
+		}
+
+		List<Object> classPaths = new ArrayList<>();
+
+		Project project = buildServiceTask.getProject();
+
+		classPaths.add(
+			GradleUtil.getConfiguration(project, CONFIGURATION_NAME));
+
+		TaskContainer taskContainer = project.getTasks();
+
+		AbstractCompile compileJavaTask =
+			(AbstractCompile)taskContainer.findByName(
+				JavaPlugin.COMPILE_JAVA_TASK_NAME);
+
+		if (compileJavaTask != null) {
+			classPaths.add(compileJavaTask.getDestinationDir());
+		}
+
+		Copy processResourcesTask = (Copy)taskContainer.findByName(
+			JavaPlugin.PROCESS_RESOURCES_TASK_NAME);
+
+		if (processResourcesTask != null) {
+			classPaths.add(processResourcesTask.getDestinationDir());
+		}
+
+		ConfigurationContainer configurationContainer =
+			project.getConfigurations();
+
+		Configuration configuration = configurationContainer.findByName(
+			JavaPlugin.COMPILE_CONFIGURATION_NAME);
+
+		if (configuration != null) {
+			classPaths.add(configuration);
+		}
+
+		classPath = project.files(classPaths.toArray());
+
+		buildServiceTask.setClasspath(classPath);
+	}
+
+	protected void configureBuildServiceTask(Project project) {
+		TaskContainer taskContainer = project.getTasks();
+
+		taskContainer.withType(
+			BuildServiceTask.class,
+			new Action<BuildServiceTask>() {
+
+				@Override
+				public void execute(BuildServiceTask buildServiceTask) {
+					configureBuildServiceTask(buildServiceTask);
+				}
+
+			});
 	}
 
 }
