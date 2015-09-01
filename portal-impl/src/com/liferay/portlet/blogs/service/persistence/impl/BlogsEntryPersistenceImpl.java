@@ -41,6 +41,8 @@ import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.blogs.NoSuchEntryException;
@@ -17651,8 +17653,8 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(BlogsEntry blogsEntry) {
-		if (blogsEntry.isNew()) {
+	protected void cacheUniqueFindersCache(BlogsEntry blogsEntry, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					blogsEntry.getUuid(), blogsEntry.getGroupId()
 				};
@@ -17856,6 +17858,28 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 			blogsEntry.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (blogsEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				blogsEntry.setCreateDate(now);
+			}
+			else {
+				blogsEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!blogsEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				blogsEntry.setModifiedDate(now);
+			}
+			else {
+				blogsEntry.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		long userId = GetterUtil.getLong(PrincipalThreadLocal.getName());
 
 		if (userId > 0) {
@@ -17871,13 +17895,15 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 
 			try {
 				blogsEntry.setTitle(SanitizerUtil.sanitize(companyId, groupId,
-						userId, BlogsEntry.class.getName(), entryId,
-						ContentTypes.TEXT_PLAIN, Sanitizer.MODE_ALL,
+						userId,
+						com.liferay.portlet.blogs.model.BlogsEntry.class.getName(),
+						entryId, ContentTypes.TEXT_PLAIN, Sanitizer.MODE_ALL,
 						blogsEntry.getTitle(), null));
 
 				blogsEntry.setContent(SanitizerUtil.sanitize(companyId,
-						groupId, userId, BlogsEntry.class.getName(), entryId,
-						ContentTypes.TEXT_HTML, Sanitizer.MODE_ALL,
+						groupId, userId,
+						com.liferay.portlet.blogs.model.BlogsEntry.class.getName(),
+						entryId, ContentTypes.TEXT_HTML, Sanitizer.MODE_ALL,
 						blogsEntry.getContent(), null));
 			}
 			catch (SanitizerException se) {
@@ -17896,7 +17922,7 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 				blogsEntry.setNew(false);
 			}
 			else {
-				session.merge(blogsEntry);
+				blogsEntry = (BlogsEntry)session.merge(blogsEntry);
 			}
 		}
 		catch (Exception e) {
@@ -18100,8 +18126,8 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 		EntityCacheUtil.putResult(BlogsEntryModelImpl.ENTITY_CACHE_ENABLED,
 			BlogsEntryImpl.class, blogsEntry.getPrimaryKey(), blogsEntry, false);
 
-		clearUniqueFindersCache(blogsEntry);
-		cacheUniqueFindersCache(blogsEntry);
+		clearUniqueFindersCache((BlogsEntry)blogsEntryModelImpl);
+		cacheUniqueFindersCache((BlogsEntry)blogsEntryModelImpl, isNew);
 
 		blogsEntry.resetOriginalValues();
 
@@ -18142,6 +18168,7 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 		blogsEntryImpl.setSmallImageFileEntryId(blogsEntry.getSmallImageFileEntryId());
 		blogsEntryImpl.setSmallImageId(blogsEntry.getSmallImageId());
 		blogsEntryImpl.setSmallImageURL(blogsEntry.getSmallImageURL());
+		blogsEntryImpl.setLastPublishDate(blogsEntry.getLastPublishDate());
 		blogsEntryImpl.setStatus(blogsEntry.getStatus());
 		blogsEntryImpl.setStatusByUserId(blogsEntry.getStatusByUserId());
 		blogsEntryImpl.setStatusByUserName(blogsEntry.getStatusByUserName());
@@ -18506,6 +18533,11 @@ public class BlogsEntryPersistenceImpl extends BasePersistenceImpl<BlogsEntry>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return BlogsEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

@@ -37,11 +37,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.Repository;
 import com.liferay.portal.model.impl.RepositoryImpl;
 import com.liferay.portal.model.impl.RepositoryModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.RepositoryPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2299,8 +2302,8 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Repository repository) {
-		if (repository.isNew()) {
+	protected void cacheUniqueFindersCache(Repository repository, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					repository.getUuid(), repository.getGroupId()
 				};
@@ -2511,6 +2514,28 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 			repository.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (repository.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				repository.setCreateDate(now);
+			}
+			else {
+				repository.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!repositoryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				repository.setModifiedDate(now);
+			}
+			else {
+				repository.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2522,7 +2547,7 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 				repository.setNew(false);
 			}
 			else {
-				session.merge(repository);
+				repository = (Repository)session.merge(repository);
 			}
 		}
 		catch (Exception e) {
@@ -2598,8 +2623,8 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 		EntityCacheUtil.putResult(RepositoryModelImpl.ENTITY_CACHE_ENABLED,
 			RepositoryImpl.class, repository.getPrimaryKey(), repository, false);
 
-		clearUniqueFindersCache(repository);
-		cacheUniqueFindersCache(repository);
+		clearUniqueFindersCache((Repository)repositoryModelImpl);
+		cacheUniqueFindersCache((Repository)repositoryModelImpl, isNew);
 
 		repository.resetOriginalValues();
 
@@ -2631,6 +2656,7 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 		repositoryImpl.setPortletId(repository.getPortletId());
 		repositoryImpl.setTypeSettings(repository.getTypeSettings());
 		repositoryImpl.setDlFolderId(repository.getDlFolderId());
+		repositoryImpl.setLastPublishDate(repository.getLastPublishDate());
 
 		return repositoryImpl;
 	}
@@ -2991,6 +3017,11 @@ public class RepositoryPersistenceImpl extends BasePersistenceImpl<Repository>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return RepositoryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

@@ -37,11 +37,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.Phone;
 import com.liferay.portal.model.impl.PhoneImpl;
 import com.liferay.portal.model.impl.PhoneModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.PhonePersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3953,6 +3956,28 @@ public class PhonePersistenceImpl extends BasePersistenceImpl<Phone>
 			phone.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (phone.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				phone.setCreateDate(now);
+			}
+			else {
+				phone.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!phoneModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				phone.setModifiedDate(now);
+			}
+			else {
+				phone.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3964,7 +3989,7 @@ public class PhonePersistenceImpl extends BasePersistenceImpl<Phone>
 				phone.setNew(false);
 			}
 			else {
-				session.merge(phone);
+				phone = (Phone)session.merge(phone);
 			}
 		}
 		catch (Exception e) {
@@ -4151,6 +4176,7 @@ public class PhonePersistenceImpl extends BasePersistenceImpl<Phone>
 		phoneImpl.setExtension(phone.getExtension());
 		phoneImpl.setTypeId(phone.getTypeId());
 		phoneImpl.setPrimary(phone.isPrimary());
+		phoneImpl.setLastPublishDate(phone.getLastPublishDate());
 
 		return phoneImpl;
 	}
@@ -4509,6 +4535,11 @@ public class PhonePersistenceImpl extends BasePersistenceImpl<Phone>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return PhoneModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

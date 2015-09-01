@@ -24,21 +24,25 @@ import com.liferay.portal.kernel.cluster.FutureClusterResponses;
 import com.liferay.portal.kernel.concurrent.NoticeableFuture;
 import com.liferay.portal.kernel.configuration.Filter;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.lock.Lock;
+import com.liferay.portal.kernel.lock.LockManager;
 import com.liferay.portal.kernel.test.CaptureHandler;
 import com.liferay.portal.kernel.test.JDKLoggerTestUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.util.MethodHandler;
 import com.liferay.portal.kernel.util.MethodKey;
 import com.liferay.portal.kernel.util.Props;
-import com.liferay.portal.kernel.util.StringBundler;
+import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.model.Lock;
-import com.liferay.portal.model.impl.LockImpl;
-import com.liferay.portal.service.impl.LockLocalServiceImpl;
 
 import java.io.Serializable;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -68,18 +72,13 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		ClusterMasterExecutorImpl clusterMasterExecutorImpl =
 			createMasterExecutorImpl(true);
 
-		clusterMasterExecutorImpl.setClusterExecutor(
-			new MockClusterExecutor(true));
-
-		clusterMasterExecutorImpl.initialize();
-
 		MockClusterExecutor mockClusterExecutor = new MockClusterExecutor(true);
 
 		String otherClusterNodeId = mockClusterExecutor.addClusterNode();
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		List<ClusterEventListener> clusterEventListeners =
 			mockClusterExecutor.getClusterEventListeners();
@@ -95,7 +94,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		// Test 2, cluster event listener is invoked when lock is changed
 
-		_mockLockLocalService.setLock(otherClusterNodeId);
+		_mockLockManager.setLock(otherClusterNodeId);
 
 		clusterEventListener.processClusterEvent(null);
 
@@ -154,18 +153,18 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		List<ClusterEventListener> clusterEventListeners =
 			mockClusterExecutor.getClusterEventListeners();
 
 		Assert.assertEquals(1, clusterEventListeners.size());
-		Assert.assertNotNull(_mockLockLocalService.getLock());
+		Assert.assertNotNull(_mockLockManager.getLock());
 
 		clusterMasterExecutorImpl.deactivate();
 
 		Assert.assertTrue(clusterEventListeners.isEmpty());
-		Assert.assertNull(_mockLockLocalService.getLock());
+		Assert.assertNull(_mockLockManager.getLock());
 
 		// Test 2, destory when cluster link is disabled
 
@@ -174,7 +173,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(false));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		clusterMasterExecutorImpl.deactivate();
 
@@ -185,14 +184,14 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(true));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(true));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
-		_mockLockLocalService.setUnlockError(true);
+		_mockLockManager.setUnlockError(true);
 
 		try (CaptureHandler captureHandler =
 				JDKLoggerTestUtil.configureJDKLogger(
@@ -236,7 +235,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(false));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertFalse(clusterMasterExecutorImpl.isEnabled());
 
@@ -325,7 +324,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertTrue(clusterMasterExecutorImpl.isEnabled());
 
@@ -366,7 +365,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertTrue(clusterMasterExecutorImpl.isMaster());
 
@@ -377,9 +376,9 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		clusterMasterExecutorImpl.addClusterMasterTokenTransitionListener(
 			mockClusterMasterTokenTransitionListener);
 
-		_mockLockLocalService.setLock(otherClusterNodeId);
+		_mockLockManager.setLock(otherClusterNodeId);
 
-		clusterMasterExecutorImpl.getMasterClusterNodeId();
+		clusterMasterExecutorImpl.getMasterClusterNodeId(true);
 
 		Assert.assertFalse(clusterMasterExecutorImpl.isMaster());
 		Assert.assertTrue(
@@ -388,10 +387,9 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		// Test 2, slave to master
 
-		_mockLockLocalService.setLock(
-			mockClusterExecutor.getLocalClusterNodeId());
+		_mockLockManager.setLock(mockClusterExecutor.getLocalClusterNodeId());
 
-		clusterMasterExecutorImpl.getMasterClusterNodeId();
+		clusterMasterExecutorImpl.getMasterClusterNodeId(true);
 
 		Assert.assertTrue(clusterMasterExecutorImpl.isMaster());
 		Assert.assertTrue(
@@ -411,7 +409,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		try (CaptureHandler captureHandler =
 				JDKLoggerTestUtil.configureJDKLogger(
@@ -419,11 +417,11 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 			String otherClusterNodeId = "otherClusterNodeId";
 
-			_mockLockLocalService.setLock(otherClusterNodeId);
+			_mockLockManager.setLock(otherClusterNodeId);
 
 			Assert.assertEquals(
 				mockClusterExecutor.getLocalClusterNodeId(),
-				clusterMasterExecutorImpl.getMasterClusterNodeId());
+				clusterMasterExecutorImpl.getMasterClusterNodeId(true));
 
 			List<LogRecord> logRecords = captureHandler.getLogRecords();
 
@@ -448,11 +446,11 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 				JDKLoggerTestUtil.configureJDKLogger(
 					ClusterMasterExecutorImpl.class.getName(), Level.INFO)) {
 
-			_mockLockLocalService.setLock(null);
+			_mockLockManager.setLock(null);
 
 			Assert.assertEquals(
 				mockClusterExecutor.getLocalClusterNodeId(),
-				clusterMasterExecutorImpl.getMasterClusterNodeId());
+				clusterMasterExecutorImpl.getMasterClusterNodeId(true));
 
 			List<LogRecord> logRecords = captureHandler.getLogRecords();
 
@@ -477,11 +475,11 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 				JDKLoggerTestUtil.configureJDKLogger(
 					ClusterMasterExecutorImpl.class.getName(), Level.OFF)) {
 
-			_mockLockLocalService.setLock(null);
+			_mockLockManager.setLock(null);
 
 			Assert.assertEquals(
 				mockClusterExecutor.getLocalClusterNodeId(),
-				clusterMasterExecutorImpl.getMasterClusterNodeId());
+				clusterMasterExecutorImpl.getMasterClusterNodeId(true));
 
 			List<LogRecord> logRecords = captureHandler.getLogRecords();
 
@@ -500,21 +498,21 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(false));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertFalse(clusterMasterExecutorImpl.isEnabled());
 		Assert.assertTrue(clusterMasterExecutorImpl.isMaster());
 
 		// Test 2, initialize when cluster link is enabled and lock is null
 
-		Assert.assertNull(_mockLockLocalService.getLock());
+		Assert.assertNull(_mockLockManager.getLock());
 
 		clusterMasterExecutorImpl = createMasterExecutorImpl(true);
 
 		clusterMasterExecutorImpl.setClusterExecutor(
 			new MockClusterExecutor(true));
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertTrue(clusterMasterExecutorImpl.isEnabled());
 		Assert.assertTrue(clusterMasterExecutorImpl.isMaster());
@@ -525,15 +523,15 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 		String otherClusterNodeId = mockClusterExecutor.addClusterNode();
 
-		_mockLockLocalService.setLock(otherClusterNodeId);
+		_mockLockManager.setLock(otherClusterNodeId);
 
-		Assert.assertNotNull(_mockLockLocalService.getLock());
+		Assert.assertNotNull(_mockLockManager.getLock());
 
 		clusterMasterExecutorImpl = createMasterExecutorImpl(true);
 
 		clusterMasterExecutorImpl.setClusterExecutor(mockClusterExecutor);
 
-		clusterMasterExecutorImpl.initialize();
+		clusterMasterExecutorImpl.activate();
 
 		Assert.assertTrue(clusterMasterExecutorImpl.isEnabled());
 		Assert.assertFalse(clusterMasterExecutorImpl.isMaster());
@@ -603,6 +601,22 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 			}
 
 			@Override
+			public InetAddress getBindInetAddress() {
+				return InetAddress.getLoopbackAddress();
+			}
+
+			@Override
+			public NetworkInterface getBindNetworkInterface() {
+				try {
+					return NetworkInterface.getByInetAddress(
+						InetAddress.getLoopbackAddress());
+				}
+				catch (SocketException se) {
+					throw new IllegalStateException(se);
+				}
+			}
+
+			@Override
 			public List<ClusterEventListener> getClusterEventListeners() {
 				return null;
 			}
@@ -633,7 +647,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 			}
 		});
 
-		clusterMasterExecutorImpl.setLockLocalService(_mockLockLocalService);
+		clusterMasterExecutorImpl.setLockManager(_mockLockManager);
 
 		return clusterMasterExecutorImpl;
 	}
@@ -644,8 +658,7 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 	private static final MethodKey _TEST_METHOD = new MethodKey(
 		TestBean.class, "testMethod1", String.class);
 
-	private final MockLockLocalService _mockLockLocalService =
-		new MockLockLocalService();
+	private final MockLockManager _mockLockManager = new MockLockManager();
 
 	private static class MockClusterExecutor extends ClusterExecutorImpl {
 
@@ -754,33 +767,8 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 				});
 
-			StringBundler sb = new StringBundler();
-
-			sb.append("UDP(bind_addr=localhost;mcast_group_addr=239.255.0.1;");
-			sb.append("mcast_port=23301):");
-			sb.append("PING(timeout=2000;num_initial_members=20;");
-			sb.append("break_on_coord_rsp=true):");
-			sb.append("MERGE3(min_interval=10000;max_interval=30000):");
-			sb.append("FD_SOCK:FD_ALL:VERIFY_SUSPECT(timeout=1500):");
-			sb.append("pbcast.NAKACK2(xmit_interval=1000;");
-			sb.append("xmit_table_num_rows=100;xmit_table_msgs_per_row=2000;");
-			sb.append("xmit_table_max_compaction_time=30000;");
-			sb.append("max_msg_batch_size=500;");
-			sb.append("use_mcast_xmit=false;discard_delivered_msgs=true):");
-			sb.append("UNICAST2(max_bytes=10M;xmit_table_num_rows=100;");
-			sb.append("xmit_table_msgs_per_row=2000;");
-			sb.append("xmit_table_max_compaction_time=60000;");
-			sb.append("max_msg_batch_size=500):");
-			sb.append("pbcast.STABLE(stability_delay=1000;");
-			sb.append("desired_avg_gossip=50000;max_bytes=4M):");
-			sb.append("pbcast.GMS(join_timeout=3000;print_local_addr=true;");
-			sb.append("view_bundling=true):");
-			sb.append("UFC(max_credits=2M;min_threshold=0.4):");
-			sb.append("MFC(max_credits=2M;min_threshold=0.4):");
-			sb.append("FRAG2(frag_size=61440):");
-			sb.append("RSVP(resend_interval=2000;timeout=10000)");
-
-			initialize(sb.toString());
+			initialize(
+				"test-channel-properties-mock", "test-channel-name-mock");
 		}
 
 		private final boolean _enabled;
@@ -813,19 +801,189 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 
 	}
 
-	private static class MockLockLocalService extends LockLocalServiceImpl {
+	private static class MockLock implements Lock {
+
+		@Override
+		public String getClassName() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public long getCompanyId() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Date getCreateDate() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Date getExpirationDate() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public long getExpirationTime() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean getInheritable() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String getKey() {
+			return _key;
+		}
+
+		@Override
+		public long getLockId() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String getOwner() {
+			if (_owner == null) {
+				return StringPool.BLANK;
+			}
+
+			return _owner;
+		}
+
+		@Override
+		public long getUserId() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String getUserName() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String getUserUuid() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String getUuid() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isCachedModel() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isEscapedModel() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isExpired() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isInheritable() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isNeverExpires() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isNew() {
+			throw new UnsupportedOperationException();
+		}
+
+		private MockLock(String key, String owner) {
+			_key = key;
+			_owner = owner;
+		}
+
+		private final String _key;
+		private final String _owner;
+
+	}
+
+	private static class MockLockManager implements LockManager {
+
+		@Override
+		public void clear() {
+		}
+
+		@Override
+		public Lock createLock(
+			long lockId, long companyId, long userId, String userName) {
+
+			throw new UnsupportedOperationException();
+		}
 
 		public Lock getLock() {
 			return _lock;
 		}
 
 		@Override
+		public Lock getLock(String className, long key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Lock getLock(String className, String key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Lock getLockByUuidAndCompanyId(String uuid, long companyId) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean hasLock(long userId, String className, long key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean hasLock(long userId, String className, String key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isLocked(String className, long key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean isLocked(String className, String key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Lock lock(
+			long userId, String className, long key, String owner,
+			boolean inheritable, long expirationTime) {
+
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public Lock lock(
+			long userId, String className, String key, String owner,
+			boolean inheritable, long expirationTime) {
+
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
 		public Lock lock(String className, String key, String owner) {
 			if (_lock == null) {
-				_lock = new LockImpl();
-
-				_lock.setKey(key);
-				_lock.setOwner(owner);
+				_lock = new MockLock(key, owner);
 			}
 
 			return _lock;
@@ -836,22 +994,32 @@ public class ClusterMasterExecutorImplTest extends BaseClusterTestCase {
 			String className, String key, String expectedOwner,
 			String updatedOwner) {
 
-			_lock = new LockImpl();
-
-			_lock.setKey(key);
-			_lock.setOwner(updatedOwner);
+			_lock = new MockLock(key, updatedOwner);
 
 			return _lock;
 		}
 
-		public void setLock(String owner) {
-			_lock = new LockImpl();
+		@Override
+		public Lock refresh(String uuid, long companyId, long expirationTime) {
+			throw new UnsupportedOperationException();
+		}
 
-			_lock.setOwner(owner);
+		public void setLock(String owner) {
+			_lock = new MockLock(_lock.getKey(), owner);
 		}
 
 		public void setUnlockError(boolean error) {
 			_errorOnUnlock = error;
+		}
+
+		@Override
+		public void unlock(String className, long key) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void unlock(String className, String key) {
+			throw new UnsupportedOperationException();
 		}
 
 		@Override

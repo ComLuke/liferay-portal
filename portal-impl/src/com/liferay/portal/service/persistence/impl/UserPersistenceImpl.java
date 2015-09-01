@@ -39,6 +39,8 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.User;
 import com.liferay.portal.model.impl.UserImpl;
 import com.liferay.portal.model.impl.UserModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.GroupPersistence;
 import com.liferay.portal.service.persistence.OrganizationPersistence;
 import com.liferay.portal.service.persistence.RolePersistence;
@@ -6913,8 +6915,8 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(User user) {
-		if (user.isNew()) {
+	protected void cacheUniqueFindersCache(User user, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] { user.getContactId() };
 
 			FinderCacheUtil.putResult(FINDER_PATH_COUNT_BY_CONTACTID, args,
@@ -7306,6 +7308,28 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 			user.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (user.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				user.setCreateDate(now);
+			}
+			else {
+				user.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!userModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				user.setModifiedDate(now);
+			}
+			else {
+				user.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -7317,7 +7341,7 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 				user.setNew(false);
 			}
 			else {
-				session.merge(user);
+				user = (User)session.merge(user);
 			}
 		}
 		catch (Exception e) {
@@ -7519,8 +7543,8 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 		EntityCacheUtil.putResult(UserModelImpl.ENTITY_CACHE_ENABLED,
 			UserImpl.class, user.getPrimaryKey(), user, false);
 
-		clearUniqueFindersCache(user);
-		cacheUniqueFindersCache(user);
+		clearUniqueFindersCache((User)userModelImpl);
+		cacheUniqueFindersCache((User)userModelImpl, isNew);
 
 		user.resetOriginalValues();
 
@@ -7577,6 +7601,7 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 		userImpl.setLockoutDate(user.getLockoutDate());
 		userImpl.setAgreedToTermsOfUse(user.isAgreedToTermsOfUse());
 		userImpl.setEmailAddressVerified(user.isEmailAddressVerified());
+		userImpl.setLastPublishDate(user.getLastPublishDate());
 		userImpl.setStatus(user.getStatus());
 
 		return userImpl;
@@ -9261,6 +9286,11 @@ public class UserPersistenceImpl extends BasePersistenceImpl<User>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return UserModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

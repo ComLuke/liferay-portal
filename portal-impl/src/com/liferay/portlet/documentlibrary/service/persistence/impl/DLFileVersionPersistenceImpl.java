@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.documentlibrary.NoSuchFileVersionException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.documentlibrary.service.persistence.DLFileVersionPers
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -5536,8 +5539,9 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 		}
 	}
 
-	protected void cacheUniqueFindersCache(DLFileVersion dlFileVersion) {
-		if (dlFileVersion.isNew()) {
+	protected void cacheUniqueFindersCache(DLFileVersion dlFileVersion,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					dlFileVersion.getUuid(), dlFileVersion.getGroupId()
 				};
@@ -5745,6 +5749,29 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 			dlFileVersion.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (dlFileVersion.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				dlFileVersion.setCreateDate(now);
+			}
+			else {
+				dlFileVersion.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!dlFileVersionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				dlFileVersion.setModifiedDate(now);
+			}
+			else {
+				dlFileVersion.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -5756,7 +5783,7 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 				dlFileVersion.setNew(false);
 			}
 			else {
-				session.merge(dlFileVersion);
+				dlFileVersion = (DLFileVersion)session.merge(dlFileVersion);
 			}
 		}
 		catch (Exception e) {
@@ -5940,8 +5967,8 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 			DLFileVersionImpl.class, dlFileVersion.getPrimaryKey(),
 			dlFileVersion, false);
 
-		clearUniqueFindersCache(dlFileVersion);
-		cacheUniqueFindersCache(dlFileVersion);
+		clearUniqueFindersCache((DLFileVersion)dlFileVersionModelImpl);
+		cacheUniqueFindersCache((DLFileVersion)dlFileVersionModelImpl, isNew);
 
 		dlFileVersion.resetOriginalValues();
 
@@ -5981,6 +6008,7 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 		dlFileVersionImpl.setVersion(dlFileVersion.getVersion());
 		dlFileVersionImpl.setSize(dlFileVersion.getSize());
 		dlFileVersionImpl.setChecksum(dlFileVersion.getChecksum());
+		dlFileVersionImpl.setLastPublishDate(dlFileVersion.getLastPublishDate());
 		dlFileVersionImpl.setStatus(dlFileVersion.getStatus());
 		dlFileVersionImpl.setStatusByUserId(dlFileVersion.getStatusByUserId());
 		dlFileVersionImpl.setStatusByUserName(dlFileVersion.getStatusByUserName());
@@ -6345,6 +6373,11 @@ public class DLFileVersionPersistenceImpl extends BasePersistenceImpl<DLFileVers
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return DLFileVersionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

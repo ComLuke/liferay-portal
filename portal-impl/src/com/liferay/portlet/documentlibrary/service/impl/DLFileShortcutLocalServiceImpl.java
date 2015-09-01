@@ -18,6 +18,7 @@ import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.Property;
 import com.liferay.portal.kernel.dao.orm.PropertyFactoryUtil;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.systemevent.SystemEvent;
@@ -26,6 +27,7 @@ import com.liferay.portal.model.ResourceConstants;
 import com.liferay.portal.model.SystemEventConstants;
 import com.liferay.portal.model.User;
 import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.permission.ModelPermissions;
 import com.liferay.portlet.documentlibrary.NoSuchFileEntryException;
 import com.liferay.portlet.documentlibrary.model.DLFileShortcut;
 import com.liferay.portlet.documentlibrary.model.DLFileShortcutConstants;
@@ -52,7 +54,6 @@ public class DLFileShortcutLocalServiceImpl
 
 		User user = userPersistence.findByPrimaryKey(userId);
 		folderId = getFolderId(user.getCompanyId(), folderId);
-		Date now = new Date();
 
 		validate(user, toFileEntryId);
 
@@ -66,8 +67,6 @@ public class DLFileShortcutLocalServiceImpl
 		fileShortcut.setCompanyId(user.getCompanyId());
 		fileShortcut.setUserId(user.getUserId());
 		fileShortcut.setUserName(user.getFullName());
-		fileShortcut.setCreateDate(serviceContext.getCreateDate(now));
-		fileShortcut.setModifiedDate(serviceContext.getModifiedDate(now));
 		fileShortcut.setRepositoryId(repositoryId);
 		fileShortcut.setFolderId(folderId);
 		fileShortcut.setToFileEntryId(toFileEntryId);
@@ -76,7 +75,7 @@ public class DLFileShortcutLocalServiceImpl
 		fileShortcut.setStatus(WorkflowConstants.STATUS_APPROVED);
 		fileShortcut.setStatusByUserId(userId);
 		fileShortcut.setStatusByUserName(user.getFullName());
-		fileShortcut.setStatusDate(now);
+		fileShortcut.setStatusDate(new Date());
 
 		dlFileShortcutPersistence.update(fileShortcut);
 
@@ -91,8 +90,7 @@ public class DLFileShortcutLocalServiceImpl
 		}
 		else {
 			addFileShortcutResources(
-				fileShortcut, serviceContext.getGroupPermissions(),
-				serviceContext.getGuestPermissions());
+				fileShortcut, serviceContext.getModelPermissions());
 		}
 
 		// Folder
@@ -130,15 +128,13 @@ public class DLFileShortcutLocalServiceImpl
 
 	@Override
 	public void addFileShortcutResources(
-			DLFileShortcut fileShortcut, String[] groupPermissions,
-			String[] guestPermissions)
+			DLFileShortcut fileShortcut, ModelPermissions modelPermissions)
 		throws PortalException {
 
 		resourceLocalService.addModelResources(
 			fileShortcut.getCompanyId(), fileShortcut.getGroupId(),
 			fileShortcut.getUserId(), DLFileShortcutConstants.getClassName(),
-			fileShortcut.getFileShortcutId(), groupPermissions,
-			guestPermissions);
+			fileShortcut.getFileShortcutId(), modelPermissions);
 	}
 
 	@Override
@@ -156,15 +152,13 @@ public class DLFileShortcutLocalServiceImpl
 
 	@Override
 	public void addFileShortcutResources(
-			long fileShortcutId, String[] groupPermissions,
-			String[] guestPermissions)
+			long fileShortcutId, ModelPermissions modelPermissions)
 		throws PortalException {
 
 		DLFileShortcut fileShortcut =
 			dlFileShortcutPersistence.findByPrimaryKey(fileShortcutId);
 
-		addFileShortcutResources(
-			fileShortcut, groupPermissions, guestPermissions);
+		addFileShortcutResources(fileShortcut, modelPermissions);
 	}
 
 	@Override
@@ -305,6 +299,10 @@ public class DLFileShortcutLocalServiceImpl
 	public void setTreePaths(final long folderId, final String treePath)
 		throws PortalException {
 
+		if (treePath == null) {
+			throw new IllegalArgumentException("Tree path is null");
+		}
+
 		ActionableDynamicQuery actionableDynamicQuery =
 			getActionableDynamicQuery();
 
@@ -321,7 +319,10 @@ public class DLFileShortcutLocalServiceImpl
 					Property treePathProperty = PropertyFactoryUtil.forName(
 						"treePath");
 
-					dynamicQuery.add(treePathProperty.ne(treePath));
+					dynamicQuery.add(
+						RestrictionsFactoryUtil.or(
+							treePathProperty.isNull(),
+							treePathProperty.ne(treePath)));
 				}
 
 			});
@@ -377,8 +378,6 @@ public class DLFileShortcutLocalServiceImpl
 
 		validate(user, toFileEntryId);
 
-		fileShortcut.setModifiedDate(
-			serviceContext.getModifiedDate(new Date()));
 		fileShortcut.setFolderId(folderId);
 		fileShortcut.setToFileEntryId(toFileEntryId);
 		fileShortcut.setTreePath(fileShortcut.buildTreePath());
@@ -433,7 +432,7 @@ public class DLFileShortcutLocalServiceImpl
 		fileShortcut.setStatus(status);
 		fileShortcut.setStatusByUserId(user.getUserId());
 		fileShortcut.setStatusByUserName(user.getFullName());
-		fileShortcut.setStatusDate(serviceContext.getModifiedDate(new Date()));
+		fileShortcut.setStatusDate(serviceContext.getModifiedDate(null));
 
 		dlFileShortcutPersistence.update(fileShortcut);
 	}

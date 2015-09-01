@@ -16,6 +16,12 @@
 
 <%@ include file="/init.jsp" %>
 
-<liferay-ui:ddm-template-renderer className="<%= LayoutSet.class.getName() %>" displayStyle="<%= siteMapDisplayContext.getDisplayStyle() %>" displayStyleGroupId="<%= siteMapDisplayContext.getDisplayStyleGroupId() %>" entries="<%= siteMapDisplayContext.getRootLayouts() %>">
-	<%= siteMapDisplayContext.buildSiteMap() %>
-</liferay-ui:ddm-template-renderer>
+<%
+Map<String, Object> contextObjects = new HashMap<String, Object>();
+
+contextObjects.put("siteNavigationSiteMapDisplayContext", siteNavigationSiteMapDisplayContext);
+%>
+
+<liferay-ddm:template-renderer className="<%= LayoutSet.class.getName() %>" contextObjects="<%= contextObjects%>" displayStyle="<%= siteNavigationSiteMapPortletInstanceConfiguration.displayStyle() %>" displayStyleGroupId="<%= siteNavigationSiteMapDisplayContext.getDisplayStyleGroupId() %>" entries="<%= siteNavigationSiteMapDisplayContext.getRootLayouts() %>">
+	<%= siteNavigationSiteMapDisplayContext.buildSiteMap() %>
+</liferay-ddm:template-renderer>

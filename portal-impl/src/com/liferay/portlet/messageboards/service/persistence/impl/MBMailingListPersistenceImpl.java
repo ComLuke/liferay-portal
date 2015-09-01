@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.messageboards.NoSuchMailingListException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.messageboards.service.persistence.MBMailingListPersis
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2220,8 +2223,9 @@ public class MBMailingListPersistenceImpl extends BasePersistenceImpl<MBMailingL
 		}
 	}
 
-	protected void cacheUniqueFindersCache(MBMailingList mbMailingList) {
-		if (mbMailingList.isNew()) {
+	protected void cacheUniqueFindersCache(MBMailingList mbMailingList,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					mbMailingList.getUuid(), mbMailingList.getGroupId()
 				};
@@ -2429,6 +2433,29 @@ public class MBMailingListPersistenceImpl extends BasePersistenceImpl<MBMailingL
 			mbMailingList.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (mbMailingList.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				mbMailingList.setCreateDate(now);
+			}
+			else {
+				mbMailingList.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!mbMailingListModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				mbMailingList.setModifiedDate(now);
+			}
+			else {
+				mbMailingList.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2440,7 +2467,7 @@ public class MBMailingListPersistenceImpl extends BasePersistenceImpl<MBMailingL
 				mbMailingList.setNew(false);
 			}
 			else {
-				session.merge(mbMailingList);
+				mbMailingList = (MBMailingList)session.merge(mbMailingList);
 			}
 		}
 		catch (Exception e) {
@@ -2517,8 +2544,8 @@ public class MBMailingListPersistenceImpl extends BasePersistenceImpl<MBMailingL
 			MBMailingListImpl.class, mbMailingList.getPrimaryKey(),
 			mbMailingList, false);
 
-		clearUniqueFindersCache(mbMailingList);
-		cacheUniqueFindersCache(mbMailingList);
+		clearUniqueFindersCache((MBMailingList)mbMailingListModelImpl);
+		cacheUniqueFindersCache((MBMailingList)mbMailingListModelImpl, isNew);
 
 		mbMailingList.resetOriginalValues();
 
@@ -2921,6 +2948,11 @@ public class MBMailingListPersistenceImpl extends BasePersistenceImpl<MBMailingL
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MBMailingListModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

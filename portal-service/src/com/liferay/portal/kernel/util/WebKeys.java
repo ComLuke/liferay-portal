@@ -22,6 +22,10 @@ import com.liferay.portal.kernel.resiliency.spi.agent.annotation.Distributed;
  */
 public interface WebKeys {
 
+	public static final String ASSET_ADDON_ENTRIES = "ASSET_ADDON_ENTRIES";
+
+	public static final String ASSET_ADDON_ENTRY = "ASSET_ADDON_ENTRY";
+
 	public static final String ASSET_ENTRY_ABSTRACT_LENGTH = "ASSET_ENTRY_ABSTRACT_LENGTH";
 
 	public static final String ASSET_ENTRY_VIEW_URL = "ASSET_ENTRY_VIEW_URL";
@@ -88,6 +92,8 @@ public interface WebKeys {
 
 	@Distributed
 	public static final String LAYOUT_ASSET_ENTRY = "LIFERAY_SHARED_LAYOUT_ASSET_ENTRY";
+
+	public static final String LAYOUT_CONTENT = "LAYOUT_CONTENT";
 
 	public static final String LAYOUTS = "LAYOUTS";
 
@@ -158,6 +164,8 @@ public interface WebKeys {
 
 	public static final String PORTLET_QUICK_ACCESS_ENTRIES = "LIFERAY_SHARED_PORTLET_QUICK_ACCESS_ENTRIES";
 
+	public static final String PORTLET_RENDER_PARAMETERS = "PORTLET_RENDER_PARAMETERS_";
+
 	public static final String PORTLET_RESOURCE_STATIC_URLS = "PORTLET_RESOURCE_STATIC_URLS";
 
 	public static final String PORTLET_SESSION = "PORTLET_SESSION";
@@ -191,6 +199,8 @@ public interface WebKeys {
 	public static final String SEARCH_CONTAINER_REFERENCE = "LIFERAY_SHARED_SEARCH_CONTAINER_REFERENCE";
 
 	public static final String SEARCH_CONTAINER_RESULT_ROW = "SEARCH_CONTAINER_RESULT_ROW";
+
+	public static final String SEARCH_CONTAINER_RESULT_ROW_CHECKER = "SEARCH_CONTAINER_RESULT_ROW_CHECKER";
 
 	public static final String SEARCH_CONTAINER_RESULT_ROW_ENTRY = "SEARCH_CONTAINER_RESULT_ROW_ENTRY";
 

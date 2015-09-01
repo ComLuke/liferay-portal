@@ -34,11 +34,14 @@ import com.liferay.portal.model.Contact;
 import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.ContactImpl;
 import com.liferay.portal.model.impl.ContactModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.ContactPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1735,6 +1738,28 @@ public class ContactPersistenceImpl extends BasePersistenceImpl<Contact>
 
 		ContactModelImpl contactModelImpl = (ContactModelImpl)contact;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (contact.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				contact.setCreateDate(now);
+			}
+			else {
+				contact.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!contactModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				contact.setModifiedDate(now);
+			}
+			else {
+				contact.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -1746,7 +1771,7 @@ public class ContactPersistenceImpl extends BasePersistenceImpl<Contact>
 				contact.setNew(false);
 			}
 			else {
-				session.merge(contact);
+				contact = (Contact)session.merge(contact);
 			}
 		}
 		catch (Exception e) {
@@ -2229,6 +2254,11 @@ public class ContactPersistenceImpl extends BasePersistenceImpl<Contact>
 		}
 
 		return count.intValue();
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return ContactModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

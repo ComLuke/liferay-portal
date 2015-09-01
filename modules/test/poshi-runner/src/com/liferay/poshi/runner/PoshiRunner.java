@@ -18,6 +18,7 @@ import com.liferay.poshi.runner.logger.CommandLoggerHandler;
 import com.liferay.poshi.runner.logger.LoggerUtil;
 import com.liferay.poshi.runner.logger.SummaryLoggerHandler;
 import com.liferay.poshi.runner.logger.XMLLoggerHandler;
+import com.liferay.poshi.runner.selenium.LiferaySeleniumHelper;
 import com.liferay.poshi.runner.selenium.SeleniumUtil;
 import com.liferay.poshi.runner.util.PropsValues;
 
@@ -98,6 +99,10 @@ public class PoshiRunner {
 			_runSetUp();
 
 			_runCommand();
+
+			LiferaySeleniumHelper.writePoshiWarnings();
+
+			LiferaySeleniumHelper.assertNoPoshiWarnings();
 		}
 		catch (Exception e) {
 			PoshiRunnerStackTraceUtil.printStackTrace(e.getMessage());
@@ -107,13 +112,24 @@ public class PoshiRunner {
 			throw new Exception(e.getMessage(), e);
 		}
 		finally {
+			LoggerUtil.createSummary();
+
 			try {
-				_runTearDown();
+				if (!PropsValues.TEST_SKIP_TEAR_DOWN) {
+					_runTearDown();
+				}
 			}
 			catch (Exception e) {
 				PoshiRunnerStackTraceUtil.printStackTrace(e.getMessage());
 
 				PoshiRunnerStackTraceUtil.emptyStackTrace();
+			}
+			finally {
+				CommandLoggerHandler.stopRunning();
+
+				LoggerUtil.stopLogger();
+
+				SeleniumUtil.stopSelenium();
 			}
 		}
 	}
@@ -142,7 +158,11 @@ public class PoshiRunner {
 			PoshiRunnerStackTraceUtil.startStackTrace(
 				classCommandName, "test-case");
 
+			XMLLoggerHandler.updateStatus(commandElement, "pending");
+
 			PoshiRunnerExecutor.parseElement(commandElement);
+
+			XMLLoggerHandler.updateStatus(commandElement, "pass");
 
 			PoshiRunnerStackTraceUtil.emptyStackTrace();
 		}
@@ -163,24 +183,11 @@ public class PoshiRunner {
 	}
 
 	private void _runTearDown() throws Exception {
-		try {
-			CommandLoggerHandler.logClassCommandName(
-				_testClassName + "#tear-down");
+		CommandLoggerHandler.logClassCommandName(_testClassName + "#tear-down");
 
-			SummaryLoggerHandler.startMajorSteps();
+		SummaryLoggerHandler.startMajorSteps();
 
-			_runClassCommandName(_testClassName + "#tear-down");
-		}
-		catch (Exception e) {
-			throw e;
-		}
-		finally {
-			CommandLoggerHandler.stopRunning();
-
-			LoggerUtil.stopLogger();
-
-			SeleniumUtil.stopSelenium();
-		}
+		_runClassCommandName(_testClassName + "#tear-down");
 	}
 
 	private final String _testClassCommandName;

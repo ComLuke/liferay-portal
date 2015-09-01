@@ -37,11 +37,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.RepositoryEntry;
 import com.liferay.portal.model.impl.RepositoryEntryImpl;
 import com.liferay.portal.model.impl.RepositoryEntryModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.RepositoryEntryPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2265,8 +2268,9 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 		}
 	}
 
-	protected void cacheUniqueFindersCache(RepositoryEntry repositoryEntry) {
-		if (repositoryEntry.isNew()) {
+	protected void cacheUniqueFindersCache(RepositoryEntry repositoryEntry,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					repositoryEntry.getUuid(), repositoryEntry.getGroupId()
 				};
@@ -2475,6 +2479,29 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 			repositoryEntry.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (repositoryEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				repositoryEntry.setCreateDate(now);
+			}
+			else {
+				repositoryEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!repositoryEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				repositoryEntry.setModifiedDate(now);
+			}
+			else {
+				repositoryEntry.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2486,7 +2513,7 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 				repositoryEntry.setNew(false);
 			}
 			else {
-				session.merge(repositoryEntry);
+				repositoryEntry = (RepositoryEntry)session.merge(repositoryEntry);
 			}
 		}
 		catch (Exception e) {
@@ -2565,8 +2592,8 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 			RepositoryEntryImpl.class, repositoryEntry.getPrimaryKey(),
 			repositoryEntry, false);
 
-		clearUniqueFindersCache(repositoryEntry);
-		cacheUniqueFindersCache(repositoryEntry);
+		clearUniqueFindersCache((RepositoryEntry)repositoryEntryModelImpl);
+		cacheUniqueFindersCache((RepositoryEntry)repositoryEntryModelImpl, isNew);
 
 		repositoryEntry.resetOriginalValues();
 
@@ -2595,6 +2622,7 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 		repositoryEntryImpl.setRepositoryId(repositoryEntry.getRepositoryId());
 		repositoryEntryImpl.setMappedId(repositoryEntry.getMappedId());
 		repositoryEntryImpl.setManualCheckInRequired(repositoryEntry.isManualCheckInRequired());
+		repositoryEntryImpl.setLastPublishDate(repositoryEntry.getLastPublishDate());
 
 		return repositoryEntryImpl;
 	}
@@ -2956,6 +2984,11 @@ public class RepositoryEntryPersistenceImpl extends BasePersistenceImpl<Reposito
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return RepositoryEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

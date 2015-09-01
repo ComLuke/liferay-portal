@@ -37,11 +37,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.Release;
 import com.liferay.portal.model.impl.ReleaseImpl;
 import com.liferay.portal.model.impl.ReleaseModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.ReleasePersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -411,8 +414,8 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Release release) {
-		if (release.isNew()) {
+	protected void cacheUniqueFindersCache(Release release, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] { release.getServletContextName() };
 
 			FinderCacheUtil.putResult(FINDER_PATH_COUNT_BY_SERVLETCONTEXTNAME,
@@ -561,6 +564,30 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 
 		boolean isNew = release.isNew();
 
+		ReleaseModelImpl releaseModelImpl = (ReleaseModelImpl)release;
+
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (release.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				release.setCreateDate(now);
+			}
+			else {
+				release.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!releaseModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				release.setModifiedDate(now);
+			}
+			else {
+				release.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -572,7 +599,7 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 				release.setNew(false);
 			}
 			else {
-				session.merge(release);
+				release = (Release)session.merge(release);
 			}
 		}
 		catch (Exception e) {
@@ -591,8 +618,8 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 		EntityCacheUtil.putResult(ReleaseModelImpl.ENTITY_CACHE_ENABLED,
 			ReleaseImpl.class, release.getPrimaryKey(), release, false);
 
-		clearUniqueFindersCache(release);
-		cacheUniqueFindersCache(release);
+		clearUniqueFindersCache((Release)releaseModelImpl);
+		cacheUniqueFindersCache((Release)releaseModelImpl, isNew);
 
 		release.resetOriginalValues();
 
@@ -614,6 +641,7 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 		releaseImpl.setCreateDate(release.getCreateDate());
 		releaseImpl.setModifiedDate(release.getModifiedDate());
 		releaseImpl.setServletContextName(release.getServletContextName());
+		releaseImpl.setVersion(release.getVersion());
 		releaseImpl.setBuildNumber(release.getBuildNumber());
 		releaseImpl.setBuildDate(release.getBuildDate());
 		releaseImpl.setVerified(release.isVerified());
@@ -978,6 +1006,11 @@ public class ReleasePersistenceImpl extends BasePersistenceImpl<Release>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return ReleaseModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

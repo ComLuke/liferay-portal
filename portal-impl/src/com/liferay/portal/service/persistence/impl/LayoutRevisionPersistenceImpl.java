@@ -35,11 +35,14 @@ import com.liferay.portal.model.LayoutRevision;
 import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.LayoutRevisionImpl;
 import com.liferay.portal.model.impl.LayoutRevisionModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.LayoutRevisionPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -5669,8 +5672,9 @@ public class LayoutRevisionPersistenceImpl extends BasePersistenceImpl<LayoutRev
 		}
 	}
 
-	protected void cacheUniqueFindersCache(LayoutRevision layoutRevision) {
-		if (layoutRevision.isNew()) {
+	protected void cacheUniqueFindersCache(LayoutRevision layoutRevision,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					layoutRevision.getLayoutSetBranchId(),
 					layoutRevision.getHead(), layoutRevision.getPlid()
@@ -5832,6 +5836,29 @@ public class LayoutRevisionPersistenceImpl extends BasePersistenceImpl<LayoutRev
 
 		LayoutRevisionModelImpl layoutRevisionModelImpl = (LayoutRevisionModelImpl)layoutRevision;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (layoutRevision.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				layoutRevision.setCreateDate(now);
+			}
+			else {
+				layoutRevision.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!layoutRevisionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				layoutRevision.setModifiedDate(now);
+			}
+			else {
+				layoutRevision.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -5843,7 +5870,7 @@ public class LayoutRevisionPersistenceImpl extends BasePersistenceImpl<LayoutRev
 				layoutRevision.setNew(false);
 			}
 			else {
-				session.merge(layoutRevision);
+				layoutRevision = (LayoutRevision)session.merge(layoutRevision);
 			}
 		}
 		catch (Exception e) {
@@ -6056,8 +6083,8 @@ public class LayoutRevisionPersistenceImpl extends BasePersistenceImpl<LayoutRev
 			LayoutRevisionImpl.class, layoutRevision.getPrimaryKey(),
 			layoutRevision, false);
 
-		clearUniqueFindersCache(layoutRevision);
-		cacheUniqueFindersCache(layoutRevision);
+		clearUniqueFindersCache((LayoutRevision)layoutRevisionModelImpl);
+		cacheUniqueFindersCache((LayoutRevision)layoutRevisionModelImpl, isNew);
 
 		layoutRevision.resetOriginalValues();
 
@@ -6461,6 +6488,11 @@ public class LayoutRevisionPersistenceImpl extends BasePersistenceImpl<LayoutRev
 		}
 
 		return count.intValue();
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return LayoutRevisionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

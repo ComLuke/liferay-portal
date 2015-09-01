@@ -36,11 +36,14 @@ import com.liferay.portal.model.LayoutSet;
 import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.LayoutSetImpl;
 import com.liferay.portal.model.impl.LayoutSetModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.LayoutSetPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1415,8 +1418,8 @@ public class LayoutSetPersistenceImpl extends BasePersistenceImpl<LayoutSet>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(LayoutSet layoutSet) {
-		if (layoutSet.isNew()) {
+	protected void cacheUniqueFindersCache(LayoutSet layoutSet, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					layoutSet.getGroupId(), layoutSet.getPrivateLayout()
 				};
@@ -1572,6 +1575,28 @@ public class LayoutSetPersistenceImpl extends BasePersistenceImpl<LayoutSet>
 
 		LayoutSetModelImpl layoutSetModelImpl = (LayoutSetModelImpl)layoutSet;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (layoutSet.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				layoutSet.setCreateDate(now);
+			}
+			else {
+				layoutSet.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!layoutSetModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				layoutSet.setModifiedDate(now);
+			}
+			else {
+				layoutSet.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -1583,7 +1608,7 @@ public class LayoutSetPersistenceImpl extends BasePersistenceImpl<LayoutSet>
 				layoutSet.setNew(false);
 			}
 			else {
-				session.merge(layoutSet);
+				layoutSet = (LayoutSet)session.merge(layoutSet);
 			}
 		}
 		catch (Exception e) {
@@ -1642,8 +1667,8 @@ public class LayoutSetPersistenceImpl extends BasePersistenceImpl<LayoutSet>
 		EntityCacheUtil.putResult(LayoutSetModelImpl.ENTITY_CACHE_ENABLED,
 			LayoutSetImpl.class, layoutSet.getPrimaryKey(), layoutSet, false);
 
-		clearUniqueFindersCache(layoutSet);
-		cacheUniqueFindersCache(layoutSet);
+		clearUniqueFindersCache((LayoutSet)layoutSetModelImpl);
+		cacheUniqueFindersCache((LayoutSet)layoutSetModelImpl, isNew);
 
 		layoutSet.resetOriginalValues();
 
@@ -2037,6 +2062,11 @@ public class LayoutSetPersistenceImpl extends BasePersistenceImpl<LayoutSet>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return LayoutSetModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

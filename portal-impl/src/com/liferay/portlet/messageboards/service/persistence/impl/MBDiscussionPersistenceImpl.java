@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.messageboards.NoSuchDiscussionException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.messageboards.service.persistence.MBDiscussionPersist
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2424,8 +2427,9 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 		}
 	}
 
-	protected void cacheUniqueFindersCache(MBDiscussion mbDiscussion) {
-		if (mbDiscussion.isNew()) {
+	protected void cacheUniqueFindersCache(MBDiscussion mbDiscussion,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					mbDiscussion.getUuid(), mbDiscussion.getGroupId()
 				};
@@ -2662,6 +2666,28 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 			mbDiscussion.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (mbDiscussion.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				mbDiscussion.setCreateDate(now);
+			}
+			else {
+				mbDiscussion.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!mbDiscussionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				mbDiscussion.setModifiedDate(now);
+			}
+			else {
+				mbDiscussion.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2673,7 +2699,7 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 				mbDiscussion.setNew(false);
 			}
 			else {
-				session.merge(mbDiscussion);
+				mbDiscussion = (MBDiscussion)session.merge(mbDiscussion);
 			}
 		}
 		catch (Exception e) {
@@ -2752,8 +2778,8 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 			MBDiscussionImpl.class, mbDiscussion.getPrimaryKey(), mbDiscussion,
 			false);
 
-		clearUniqueFindersCache(mbDiscussion);
-		cacheUniqueFindersCache(mbDiscussion);
+		clearUniqueFindersCache((MBDiscussion)mbDiscussionModelImpl);
+		cacheUniqueFindersCache((MBDiscussion)mbDiscussionModelImpl, isNew);
 
 		mbDiscussion.resetOriginalValues();
 
@@ -2781,6 +2807,7 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 		mbDiscussionImpl.setClassNameId(mbDiscussion.getClassNameId());
 		mbDiscussionImpl.setClassPK(mbDiscussion.getClassPK());
 		mbDiscussionImpl.setThreadId(mbDiscussion.getThreadId());
+		mbDiscussionImpl.setLastPublishDate(mbDiscussion.getLastPublishDate());
 
 		return mbDiscussionImpl;
 	}
@@ -3141,6 +3168,11 @@ public class MBDiscussionPersistenceImpl extends BasePersistenceImpl<MBDiscussio
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MBDiscussionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

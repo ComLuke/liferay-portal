@@ -40,6 +40,8 @@ import com.liferay.portal.model.UserGroup;
 import com.liferay.portal.model.impl.UserGroupImpl;
 import com.liferay.portal.model.impl.UserGroupModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.GroupPersistence;
 import com.liferay.portal.service.persistence.TeamPersistence;
 import com.liferay.portal.service.persistence.UserGroupPersistence;
@@ -48,6 +50,7 @@ import com.liferay.portal.service.persistence.UserPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -4049,8 +4052,8 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(UserGroup userGroup) {
-		if (userGroup.isNew()) {
+	protected void cacheUniqueFindersCache(UserGroup userGroup, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					userGroup.getCompanyId(), userGroup.getName()
 				};
@@ -4222,6 +4225,28 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 			userGroup.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (userGroup.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				userGroup.setCreateDate(now);
+			}
+			else {
+				userGroup.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!userGroupModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				userGroup.setModifiedDate(now);
+			}
+			else {
+				userGroup.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -4233,7 +4258,7 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 				userGroup.setNew(false);
 			}
 			else {
-				session.merge(userGroup);
+				userGroup = (UserGroup)session.merge(userGroup);
 			}
 		}
 		catch (Exception e) {
@@ -4332,8 +4357,8 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 		EntityCacheUtil.putResult(UserGroupModelImpl.ENTITY_CACHE_ENABLED,
 			UserGroupImpl.class, userGroup.getPrimaryKey(), userGroup, false);
 
-		clearUniqueFindersCache(userGroup);
-		cacheUniqueFindersCache(userGroup);
+		clearUniqueFindersCache((UserGroup)userGroupModelImpl);
+		cacheUniqueFindersCache((UserGroup)userGroupModelImpl, isNew);
 
 		userGroup.resetOriginalValues();
 
@@ -4362,6 +4387,7 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 		userGroupImpl.setName(userGroup.getName());
 		userGroupImpl.setDescription(userGroup.getDescription());
 		userGroupImpl.setAddedByLDAPImport(userGroup.isAddedByLDAPImport());
+		userGroupImpl.setLastPublishDate(userGroup.getLastPublishDate());
 
 		return userGroupImpl;
 	}
@@ -5510,6 +5536,11 @@ public class UserGroupPersistenceImpl extends BasePersistenceImpl<UserGroup>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return UserGroupModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

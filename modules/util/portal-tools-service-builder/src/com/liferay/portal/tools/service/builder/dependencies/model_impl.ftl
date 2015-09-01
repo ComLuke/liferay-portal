@@ -34,7 +34,6 @@ import com.liferay.portal.kernel.bean.AutoEscapeBeanHandler;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSON;
 import com.liferay.portal.kernel.language.LanguageUtil;
-import com.liferay.portal.kernel.lar.StagedModelType;
 import com.liferay.portal.kernel.trash.TrashHandler;
 import com.liferay.portal.kernel.trash.TrashHandlerRegistryUtil;
 import com.liferay.portal.kernel.util.DateUtil;
@@ -59,6 +58,8 @@ import com.liferay.portlet.expando.model.ExpandoBridge;
 import com.liferay.portlet.expando.util.ExpandoBridgeFactoryUtil;
 import com.liferay.portlet.trash.model.TrashEntry;
 import com.liferay.portlet.trash.service.TrashEntryLocalServiceUtil;
+
+import com.liferay.portlet.exportimport.lar.StagedModelType;
 
 import java.io.Serializable;
 
@@ -85,8 +86,15 @@ import java.util.TreeSet;
  * @see ${entity.name}Impl
  * @see ${packagePath}.model.${entity.name}
  * @see ${packagePath}.model.${entity.name}Model
+<#if classDeprecated>
+ * @deprecated ${classDeprecatedComment}
+</#if>
  * @generated
  */
+
+<#if classDeprecated>
+	@Deprecated
+</#if>
 
 <#if entity.jsonEnabled>
 	@JSON(strict = true)
@@ -115,6 +123,16 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 				</#if>
 			</#list>
 		};
+
+		public static final Map<String, Integer> TABLE_COLUMNS_MAP = new HashMap<String, Integer>();
+
+		static {
+			<#list entity.getRegularColList() as column>
+				<#assign sqlType = serviceBuilder.getSqlType(packagePath + ".model." + entity.getName(), column.getName(), column.getType())>
+
+				TABLE_COLUMNS_MAP.put("${column.DBName}", Types.${sqlType});
+			</#list>
+		}
 	</#compress>
 
 	public static final String TABLE_SQL_CREATE = "${serviceBuilder.getCreateTableSQL(entity)}";
@@ -535,6 +553,12 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 			}
 		</#if>
 
+		<#if entity.hasColumn("createDate", "Date") && entity.hasColumn("modifiedDate", "Date") && (column.name == "modifiedDate")>
+			public boolean hasSetModifiedDate() {
+				return _setModifiedDate;
+			}
+		</#if>
+
 		@Override
 		public void set${column.methodName}(${column.genericizedType} ${column.name}) {
 			<#if column.name == "uuid">
@@ -546,6 +570,10 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 
 				_uuid = uuid;
 			<#else>
+				<#if entity.hasColumn("createDate", "Date") && entity.hasColumn("modifiedDate", "Date") && (column.name == "modifiedDate")>
+					_setModifiedDate = true;
+				</#if>
+
 				<#if column.isOrderColumn() && columnBitmaskEnabled>
 					_columnBitmask = -1L;
 				</#if>
@@ -1255,7 +1283,7 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 	@Override
 	public void resetOriginalValues() {
 		<#list entity.regularColList as column>
-			<#if column.isFinderPath() || ((parentPKColumn != "") && (parentPKColumn.name == column.name)) || ((column.type == "Blob") && column.lazy)>
+			<#if column.isFinderPath() || ((parentPKColumn != "") && (parentPKColumn.name == column.name)) || ((column.type == "Blob") && column.lazy) || (entity.hasColumn("createDate", "Date") && entity.hasColumn("modifiedDate", "Date"))>
 				<#if !cloneCastModelImpl??>
 					<#assign cloneCastModelImpl = true>
 
@@ -1273,6 +1301,10 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 
 			<#if (column.type == "Blob") && column.lazy>
 				${entity.varName}ModelImpl._${column.name}BlobModel = null;
+			</#if>
+
+			<#if entity.hasColumn("createDate", "Date") && entity.hasColumn("modifiedDate", "Date") && (column.name == "modifiedDate")>
+				${entity.varName}ModelImpl._setModifiedDate = false;
 			</#if>
 		</#list>
 
@@ -1394,6 +1426,10 @@ public class ${entity.name}ModelImpl extends BaseModelImpl<${entity.name}> imple
 				<#if column.isPrimitiveType()>
 					private boolean _setOriginal${column.methodName};
 				</#if>
+			</#if>
+
+			<#if entity.hasColumn("createDate", "Date") && entity.hasColumn("modifiedDate", "Date") && (column.name == "modifiedDate")>
+				private boolean _setModifiedDate;
 			</#if>
 		</#if>
 	</#list>

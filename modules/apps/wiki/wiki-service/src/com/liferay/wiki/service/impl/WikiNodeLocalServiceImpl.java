@@ -14,7 +14,6 @@
 
 package com.liferay.wiki.service.impl;
 
-import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
@@ -33,6 +32,7 @@ import com.liferay.portal.model.SystemEventConstants;
 import com.liferay.portal.model.User;
 import com.liferay.portal.portletfilerepository.PortletFileRepositoryUtil;
 import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.spring.extender.service.ServiceReference;
 import com.liferay.portlet.documentlibrary.model.DLFolderConstants;
 import com.liferay.portlet.trash.model.TrashEntry;
 import com.liferay.portlet.trash.util.TrashUtil;
@@ -68,7 +68,7 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 		throws PortalException {
 
 		return addNode(
-			userId, _wikiGroupServiceConfiguration.initialNodeName(),
+			userId, wikiGroupServiceConfiguration.initialNodeName(),
 			StringPool.BLANK, serviceContext);
 	}
 
@@ -82,7 +82,6 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 
 		User user = userPersistence.findByPrimaryKey(userId);
 		long groupId = serviceContext.getScopeGroupId();
-		Date now = new Date();
 
 		validate(groupId, name);
 
@@ -95,8 +94,6 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 		node.setCompanyId(user.getCompanyId());
 		node.setUserId(user.getUserId());
 		node.setUserName(user.getFullName());
-		node.setCreateDate(serviceContext.getCreateDate(now));
-		node.setModifiedDate(serviceContext.getModifiedDate(now));
 		node.setName(name);
 		node.setDescription(description);
 
@@ -232,7 +229,7 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 
 			// Indexer
 
-			Indexer indexer = IndexerRegistryUtil.nullSafeGetIndexer(
+			Indexer<WikiNode> indexer = IndexerRegistryUtil.nullSafeGetIndexer(
 				WikiNode.class);
 
 			indexer.delete(node);
@@ -454,7 +451,6 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 
 		validate(nodeId, node.getGroupId(), name);
 
-		node.setModifiedDate(serviceContext.getModifiedDate(null));
 		node.setName(name);
 		node.setDescription(description);
 
@@ -473,18 +469,16 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 
 		User user = userPersistence.findByPrimaryKey(userId);
 
-		Date now = new Date();
-
 		node.setStatus(status);
 		node.setStatusByUserId(userId);
 		node.setStatusByUserName(user.getFullName());
-		node.setStatusDate(now);
+		node.setStatusDate(new Date());
 
 		wikiNodePersistence.update(node);
 
 		// Indexer
 
-		Indexer indexer = IndexerRegistryUtil.nullSafeGetIndexer(
+		Indexer<WikiNode> indexer = IndexerRegistryUtil.nullSafeGetIndexer(
 			WikiNode.class);
 
 		indexer.reindex(node);
@@ -562,10 +556,10 @@ public class WikiNodeLocalServiceImpl extends WikiNodeLocalServiceBaseImpl {
 		validate(0, groupId, name);
 	}
 
+	@ServiceReference(type = WikiGroupServiceConfiguration.class)
+	protected WikiGroupServiceConfiguration wikiGroupServiceConfiguration;
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		WikiNodeLocalServiceImpl.class);
-
-	@BeanReference(type = WikiGroupServiceConfiguration.class)
-	private WikiGroupServiceConfiguration _wikiGroupServiceConfiguration;
 
 }

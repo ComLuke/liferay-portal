@@ -37,6 +37,8 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.asset.NoSuchVocabularyException;
@@ -48,6 +50,7 @@ import com.liferay.portlet.asset.service.persistence.AssetVocabularyPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -4500,8 +4503,9 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 		}
 	}
 
-	protected void cacheUniqueFindersCache(AssetVocabulary assetVocabulary) {
-		if (assetVocabulary.isNew()) {
+	protected void cacheUniqueFindersCache(AssetVocabulary assetVocabulary,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					assetVocabulary.getUuid(), assetVocabulary.getGroupId()
 				};
@@ -4708,6 +4712,29 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 			assetVocabulary.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (assetVocabulary.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				assetVocabulary.setCreateDate(now);
+			}
+			else {
+				assetVocabulary.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!assetVocabularyModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				assetVocabulary.setModifiedDate(now);
+			}
+			else {
+				assetVocabulary.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -4719,7 +4746,7 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 				assetVocabulary.setNew(false);
 			}
 			else {
-				session.merge(assetVocabulary);
+				assetVocabulary = (AssetVocabulary)session.merge(assetVocabulary);
 			}
 		}
 		catch (Exception e) {
@@ -4815,8 +4842,8 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 			AssetVocabularyImpl.class, assetVocabulary.getPrimaryKey(),
 			assetVocabulary, false);
 
-		clearUniqueFindersCache(assetVocabulary);
-		cacheUniqueFindersCache(assetVocabulary);
+		clearUniqueFindersCache((AssetVocabulary)assetVocabularyModelImpl);
+		cacheUniqueFindersCache((AssetVocabulary)assetVocabularyModelImpl, isNew);
 
 		assetVocabulary.resetOriginalValues();
 
@@ -4845,6 +4872,7 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 		assetVocabularyImpl.setTitle(assetVocabulary.getTitle());
 		assetVocabularyImpl.setDescription(assetVocabulary.getDescription());
 		assetVocabularyImpl.setSettings(assetVocabulary.getSettings());
+		assetVocabularyImpl.setLastPublishDate(assetVocabulary.getLastPublishDate());
 
 		return assetVocabularyImpl;
 	}
@@ -5206,6 +5234,11 @@ public class AssetVocabularyPersistenceImpl extends BasePersistenceImpl<AssetVoc
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return AssetVocabularyModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

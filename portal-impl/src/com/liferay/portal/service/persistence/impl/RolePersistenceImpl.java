@@ -42,6 +42,8 @@ import com.liferay.portal.model.Role;
 import com.liferay.portal.model.impl.RoleImpl;
 import com.liferay.portal.model.impl.RoleModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.GroupPersistence;
 import com.liferay.portal.service.persistence.RolePersistence;
 import com.liferay.portal.service.persistence.UserPersistence;
@@ -49,6 +51,7 @@ import com.liferay.portal.service.persistence.UserPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -8333,8 +8336,8 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Role role) {
-		if (role.isNew()) {
+	protected void cacheUniqueFindersCache(Role role, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] { role.getCompanyId(), role.getName() };
 
 			FinderCacheUtil.putResult(FINDER_PATH_COUNT_BY_C_N, args,
@@ -8534,6 +8537,28 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 			role.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (role.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				role.setCreateDate(now);
+			}
+			else {
+				role.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!roleModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				role.setModifiedDate(now);
+			}
+			else {
+				role.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -8545,7 +8570,7 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 				role.setNew(false);
 			}
 			else {
-				session.merge(role);
+				role = (Role)session.merge(role);
 			}
 		}
 		catch (Exception e) {
@@ -8705,8 +8730,8 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 		EntityCacheUtil.putResult(RoleModelImpl.ENTITY_CACHE_ENABLED,
 			RoleImpl.class, role.getPrimaryKey(), role, false);
 
-		clearUniqueFindersCache(role);
-		cacheUniqueFindersCache(role);
+		clearUniqueFindersCache((Role)roleModelImpl);
+		cacheUniqueFindersCache((Role)roleModelImpl, isNew);
 
 		role.resetOriginalValues();
 
@@ -8738,6 +8763,7 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 		roleImpl.setDescription(role.getDescription());
 		roleImpl.setType(role.getType());
 		roleImpl.setSubtype(role.getSubtype());
+		roleImpl.setLastPublishDate(role.getLastPublishDate());
 
 		return roleImpl;
 	}
@@ -9619,6 +9645,11 @@ public class RolePersistenceImpl extends BasePersistenceImpl<Role>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return RoleModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

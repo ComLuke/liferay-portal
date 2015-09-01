@@ -18,50 +18,56 @@
 
 <liferay-ui:icon-menu
 	cssClass="portlet-options"
-	direction="down"
+	direction="<%= direction %>"
 	extended="<%= false %>"
 	icon="../aui/cog"
 	message="options"
-	showArrow="<%= true %>"
+	showArrow="<%= showArrow %>"
 	showWhenSingleIcon="<%= true %>"
+	view="<%= view %>"
 >
 
 	<%
-	List<PortletConfigurationIcon> portletConfigurationIcons = ListUtil.copy(PortletConfigurationIconTracker.getPortletConfigurationIcons());
+	List<PortletConfigurationIconFactory> portletConfigurationIconFactories = ListUtil.copy(PortletConfigurationIconTracker.getPortletConfigurationIcons());
 
-	portletConfigurationIcons = ListUtil.sort(portletConfigurationIcons, new PropertyComparator("weight", false, false));
+	portletConfigurationIconFactories = ListUtil.sort(portletConfigurationIconFactories, new PropertyComparator("weight", false, false));
 
-	for (PortletConfigurationIcon portletConfigurationIcon : portletConfigurationIcons) {
-		portletConfigurationIcon.setRequest(request);
-	%>
+	for (PortletConfigurationIconFactory portletConfigurationIconFactory : portletConfigurationIconFactories) {
+		PortletConfigurationIcon portletConfigurationIcon = portletConfigurationIconFactory.create(request);
 
-		<c:if test="<%= portletConfigurationIcon.isShow() %>">
-			<liferay-ui:icon
-				alt="<%= portletConfigurationIcon.getAlt() %>"
-				ariaRole="<%= portletConfigurationIcon.getAriaRole() %>"
-				cssClass="<%= portletConfigurationIcon.getCssClass() %>"
-				data="<%= portletConfigurationIcon.getData() %>"
-				iconCssClass="<%= portletConfigurationIcon.getIconCssClass() %>"
-				id="<%= portletConfigurationIcon.getId() %>"
-				image="<%= portletConfigurationIcon.getImage() %>"
-				imageHover="<%= portletConfigurationIcon.getImageHover() %>"
-				label="<%= portletConfigurationIcon.isLabel() %>"
-				lang="<%= portletConfigurationIcon.getLang() %>"
-				linkCssClass="<%= portletConfigurationIcon.getLinkCssClass() %>"
-				localizeMessage="<%= portletConfigurationIcon.isLocalizeMessage() %>"
-				message="<%= portletConfigurationIcon.getMessage() %>"
-				method="<%= portletConfigurationIcon.getMethod() %>"
-				onClick="<%= portletConfigurationIcon.getOnClick() %>"
-				src="<%= portletConfigurationIcon.getSrc() %>"
-				srcHover="<%= portletConfigurationIcon.getSrcHover() %>"
-				target="<%= portletConfigurationIcon.getTarget() %>"
-				toolTip="<%= portletConfigurationIcon.isToolTip() %>"
-				url="<%= portletConfigurationIcon.getURL() %>"
-				useDialog="<%= portletConfigurationIcon.isUseDialog() %>"
-			/>
-		</c:if>
+		if (portletConfigurationIcon.isShow()) {
+			boolean include = portletConfigurationIconFactory.include(request, new PipingServletResponse(pageContext));
+
+			if (!include) {
+		%>
+
+				<liferay-ui:icon
+					alt="<%= portletConfigurationIcon.getAlt() %>"
+					ariaRole="<%= portletConfigurationIcon.getAriaRole() %>"
+					cssClass="<%= portletConfigurationIcon.getCssClass() %>"
+					data="<%= portletConfigurationIcon.getData() %>"
+					iconCssClass="<%= portletConfigurationIcon.getIconCssClass() %>"
+					id="<%= portletConfigurationIcon.getId() %>"
+					image="<%= portletConfigurationIcon.getImage() %>"
+					imageHover="<%= portletConfigurationIcon.getImageHover() %>"
+					label="<%= portletConfigurationIcon.isLabel() %>"
+					lang="<%= portletConfigurationIcon.getLang() %>"
+					linkCssClass="<%= portletConfigurationIcon.getLinkCssClass() %>"
+					localizeMessage="<%= portletConfigurationIcon.isLocalizeMessage() %>"
+					message="<%= portletConfigurationIcon.getMessage() %>"
+					method="<%= portletConfigurationIcon.getMethod() %>"
+					onClick="<%= portletConfigurationIcon.getOnClick() %>"
+					src="<%= portletConfigurationIcon.getSrc() %>"
+					srcHover="<%= portletConfigurationIcon.getSrcHover() %>"
+					target="<%= portletConfigurationIcon.getTarget() %>"
+					toolTip="<%= portletConfigurationIcon.isToolTip() %>"
+					url="<%= portletConfigurationIcon.getURL() %>"
+					useDialog="<%= portletConfigurationIcon.isUseDialog() %>"
+				/>
 
 	<%
+			}
+		}
 	}
 	%>
 

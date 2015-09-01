@@ -39,11 +39,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.LayoutPrototypeImpl;
 import com.liferay.portal.model.impl.LayoutPrototypeModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.LayoutPrototypePersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3935,6 +3938,29 @@ public class LayoutPrototypePersistenceImpl extends BasePersistenceImpl<LayoutPr
 			layoutPrototype.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (layoutPrototype.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				layoutPrototype.setCreateDate(now);
+			}
+			else {
+				layoutPrototype.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!layoutPrototypeModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				layoutPrototype.setModifiedDate(now);
+			}
+			else {
+				layoutPrototype.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3946,7 +3972,7 @@ public class LayoutPrototypePersistenceImpl extends BasePersistenceImpl<LayoutPr
 				layoutPrototype.setNew(false);
 			}
 			else {
-				session.merge(layoutPrototype);
+				layoutPrototype = (LayoutPrototype)session.merge(layoutPrototype);
 			}
 		}
 		catch (Exception e) {
@@ -4073,6 +4099,7 @@ public class LayoutPrototypePersistenceImpl extends BasePersistenceImpl<LayoutPr
 		layoutPrototypeImpl.setDescription(layoutPrototype.getDescription());
 		layoutPrototypeImpl.setSettings(layoutPrototype.getSettings());
 		layoutPrototypeImpl.setActive(layoutPrototype.isActive());
+		layoutPrototypeImpl.setLastPublishDate(layoutPrototype.getLastPublishDate());
 
 		return layoutPrototypeImpl;
 	}
@@ -4434,6 +4461,11 @@ public class LayoutPrototypePersistenceImpl extends BasePersistenceImpl<LayoutPr
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return LayoutPrototypeModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

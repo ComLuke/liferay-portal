@@ -38,11 +38,14 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2690,8 +2693,8 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(PollsVote pollsVote) {
-		if (pollsVote.isNew()) {
+	protected void cacheUniqueFindersCache(PollsVote pollsVote, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					pollsVote.getUuid(), pollsVote.getGroupId()
 				};
@@ -2889,6 +2892,28 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 			pollsVote.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (pollsVote.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				pollsVote.setCreateDate(now);
+			}
+			else {
+				pollsVote.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!pollsVoteModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				pollsVote.setModifiedDate(now);
+			}
+			else {
+				pollsVote.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2900,7 +2925,7 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 				pollsVote.setNew(false);
 			}
 			else {
-				session.merge(pollsVote);
+				pollsVote = (PollsVote)session.merge(pollsVote);
 			}
 		}
 		catch (Exception e) {
@@ -2995,8 +3020,8 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 		EntityCacheUtil.putResult(PollsVoteModelImpl.ENTITY_CACHE_ENABLED,
 			PollsVoteImpl.class, pollsVote.getPrimaryKey(), pollsVote, false);
 
-		clearUniqueFindersCache(pollsVote);
-		cacheUniqueFindersCache(pollsVote);
+		clearUniqueFindersCache((PollsVote)pollsVoteModelImpl);
+		cacheUniqueFindersCache((PollsVote)pollsVoteModelImpl, isNew);
 
 		pollsVote.resetOriginalValues();
 
@@ -3023,6 +3048,7 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 		pollsVoteImpl.setModifiedDate(pollsVote.getModifiedDate());
 		pollsVoteImpl.setQuestionId(pollsVote.getQuestionId());
 		pollsVoteImpl.setChoiceId(pollsVote.getChoiceId());
+		pollsVoteImpl.setLastPublishDate(pollsVote.getLastPublishDate());
 		pollsVoteImpl.setVoteDate(pollsVote.getVoteDate());
 
 		return pollsVoteImpl;
@@ -3383,6 +3409,11 @@ public class PollsVotePersistenceImpl extends BasePersistenceImpl<PollsVote>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return PollsVoteModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

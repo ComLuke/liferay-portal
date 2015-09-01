@@ -43,6 +43,8 @@ import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.messageboards.NoSuchMessageException;
@@ -54,6 +56,7 @@ import com.liferay.portlet.messageboards.service.persistence.MBMessagePersistenc
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18196,8 +18199,8 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(MBMessage mbMessage) {
-		if (mbMessage.isNew()) {
+	protected void cacheUniqueFindersCache(MBMessage mbMessage, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					mbMessage.getUuid(), mbMessage.getGroupId()
 				};
@@ -18362,6 +18365,28 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 			mbMessage.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (mbMessage.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				mbMessage.setCreateDate(now);
+			}
+			else {
+				mbMessage.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!mbMessageModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				mbMessage.setModifiedDate(now);
+			}
+			else {
+				mbMessage.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		long userId = GetterUtil.getLong(PrincipalThreadLocal.getName());
 
 		if (userId > 0) {
@@ -18377,8 +18402,9 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 
 			try {
 				mbMessage.setSubject(SanitizerUtil.sanitize(companyId, groupId,
-						userId, MBMessage.class.getName(), messageId,
-						ContentTypes.TEXT_PLAIN, Sanitizer.MODE_ALL,
+						userId,
+						com.liferay.portlet.messageboards.model.MBMessage.class.getName(),
+						messageId, ContentTypes.TEXT_PLAIN, Sanitizer.MODE_ALL,
 						mbMessage.getSubject(), null));
 			}
 			catch (SanitizerException se) {
@@ -18397,7 +18423,7 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 				mbMessage.setNew(false);
 			}
 			else {
-				session.merge(mbMessage);
+				mbMessage = (MBMessage)session.merge(mbMessage);
 			}
 		}
 		catch (Exception e) {
@@ -18968,8 +18994,8 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 		EntityCacheUtil.putResult(MBMessageModelImpl.ENTITY_CACHE_ENABLED,
 			MBMessageImpl.class, mbMessage.getPrimaryKey(), mbMessage, false);
 
-		clearUniqueFindersCache(mbMessage);
-		cacheUniqueFindersCache(mbMessage);
+		clearUniqueFindersCache((MBMessage)mbMessageModelImpl);
+		cacheUniqueFindersCache((MBMessage)mbMessageModelImpl, isNew);
 
 		mbMessage.resetOriginalValues();
 
@@ -19007,6 +19033,7 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 		mbMessageImpl.setPriority(mbMessage.getPriority());
 		mbMessageImpl.setAllowPingbacks(mbMessage.isAllowPingbacks());
 		mbMessageImpl.setAnswer(mbMessage.isAnswer());
+		mbMessageImpl.setLastPublishDate(mbMessage.getLastPublishDate());
 		mbMessageImpl.setStatus(mbMessage.getStatus());
 		mbMessageImpl.setStatusByUserId(mbMessage.getStatusByUserId());
 		mbMessageImpl.setStatusByUserName(mbMessage.getStatusByUserName());
@@ -19371,6 +19398,11 @@ public class MBMessagePersistenceImpl extends BasePersistenceImpl<MBMessage>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MBMessageModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

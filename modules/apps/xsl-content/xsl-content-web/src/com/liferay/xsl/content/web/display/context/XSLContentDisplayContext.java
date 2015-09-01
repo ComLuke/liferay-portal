@@ -14,7 +14,7 @@
 
 package com.liferay.xsl.content.web.display.context;
 
-import com.liferay.portal.kernel.settings.SettingsException;
+import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.theme.PortletDisplay;
 import com.liferay.portal.theme.ThemeDisplay;
@@ -34,7 +34,7 @@ public class XSLContentDisplayContext {
 	public XSLContentDisplayContext(
 			HttpServletRequest request,
 			XSLContentConfiguration xslContentConfiguration)
-		throws SettingsException {
+		throws ConfigurationException {
 
 		_xslContentConfiguration = xslContentConfiguration;
 
@@ -54,10 +54,10 @@ public class XSLContentDisplayContext {
 		}
 
 		String xmlUrl = XSLContentUtil.replaceUrlTokens(
-			_themeDisplay, getXMLUrl());
+			_themeDisplay, _xslContentPortletInstanceConfiguration.xmlUrl());
 
 		String xslUrl = XSLContentUtil.replaceUrlTokens(
-			_themeDisplay, getXSLUrl());
+			_themeDisplay, _xslContentPortletInstanceConfiguration.xslUrl());
 
 		_content = XSLContentUtil.transform(
 			_xslContentConfiguration, new URL(xmlUrl), new URL(xslUrl));
@@ -65,32 +65,16 @@ public class XSLContentDisplayContext {
 		return _content;
 	}
 
-	public String getXMLUrl() {
-		if (_xmlUrl != null) {
-			return _xmlUrl;
-		}
+	public XSLContentPortletInstanceConfiguration
+		getXSLContentPortletInstanceConfiguration() {
 
-		_xmlUrl = _xslContentPortletInstanceConfiguration.xmlUrl();
-
-		return _xmlUrl;
-	}
-
-	public String getXSLUrl() {
-		if (_xslUrl != null) {
-			return _xslUrl;
-		}
-
-		_xslUrl = _xslContentPortletInstanceConfiguration.xslUrl();
-
-		return _xslUrl;
+		return _xslContentPortletInstanceConfiguration;
 	}
 
 	private String _content;
 	private final ThemeDisplay _themeDisplay;
-	private String _xmlUrl;
 	private final XSLContentConfiguration _xslContentConfiguration;
 	private final XSLContentPortletInstanceConfiguration
 		_xslContentPortletInstanceConfiguration;
-	private String _xslUrl;
 
 }

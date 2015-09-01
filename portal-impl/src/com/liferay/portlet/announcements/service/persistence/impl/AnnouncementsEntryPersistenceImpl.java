@@ -41,6 +41,8 @@ import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.announcements.NoSuchEntryException;
@@ -52,6 +54,7 @@ import com.liferay.portlet.announcements.service.persistence.AnnouncementsEntryP
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -4916,6 +4919,30 @@ public class AnnouncementsEntryPersistenceImpl extends BasePersistenceImpl<Annou
 			announcementsEntry.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (announcementsEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				announcementsEntry.setCreateDate(now);
+			}
+			else {
+				announcementsEntry.setCreateDate(serviceContext.getCreateDate(
+						now));
+			}
+		}
+
+		if (!announcementsEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				announcementsEntry.setModifiedDate(now);
+			}
+			else {
+				announcementsEntry.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		long userId = GetterUtil.getLong(PrincipalThreadLocal.getName());
 
 		if (userId > 0) {
@@ -4932,8 +4959,8 @@ public class AnnouncementsEntryPersistenceImpl extends BasePersistenceImpl<Annou
 			try {
 				announcementsEntry.setContent(SanitizerUtil.sanitize(
 						companyId, groupId, userId,
-						AnnouncementsEntry.class.getName(), entryId,
-						ContentTypes.TEXT_HTML, Sanitizer.MODE_ALL,
+						com.liferay.portlet.announcements.model.AnnouncementsEntry.class.getName(),
+						entryId, ContentTypes.TEXT_HTML, Sanitizer.MODE_ALL,
 						announcementsEntry.getContent(), null));
 			}
 			catch (SanitizerException se) {
@@ -4952,7 +4979,7 @@ public class AnnouncementsEntryPersistenceImpl extends BasePersistenceImpl<Annou
 				announcementsEntry.setNew(false);
 			}
 			else {
-				session.merge(announcementsEntry);
+				announcementsEntry = (AnnouncementsEntry)session.merge(announcementsEntry);
 			}
 		}
 		catch (Exception e) {
@@ -5469,6 +5496,11 @@ public class AnnouncementsEntryPersistenceImpl extends BasePersistenceImpl<Annou
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return AnnouncementsEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

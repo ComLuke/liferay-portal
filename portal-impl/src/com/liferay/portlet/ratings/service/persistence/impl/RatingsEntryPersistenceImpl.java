@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.ratings.NoSuchEntryException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.ratings.service.persistence.RatingsEntryPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2570,8 +2573,9 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 		}
 	}
 
-	protected void cacheUniqueFindersCache(RatingsEntry ratingsEntry) {
-		if (ratingsEntry.isNew()) {
+	protected void cacheUniqueFindersCache(RatingsEntry ratingsEntry,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					ratingsEntry.getUserId(), ratingsEntry.getClassNameId(),
 					ratingsEntry.getClassPK()
@@ -2742,6 +2746,28 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 			ratingsEntry.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (ratingsEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				ratingsEntry.setCreateDate(now);
+			}
+			else {
+				ratingsEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!ratingsEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				ratingsEntry.setModifiedDate(now);
+			}
+			else {
+				ratingsEntry.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2753,7 +2779,7 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 				ratingsEntry.setNew(false);
 			}
 			else {
-				session.merge(ratingsEntry);
+				ratingsEntry = (RatingsEntry)session.merge(ratingsEntry);
 			}
 		}
 		catch (Exception e) {
@@ -2857,8 +2883,8 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 			RatingsEntryImpl.class, ratingsEntry.getPrimaryKey(), ratingsEntry,
 			false);
 
-		clearUniqueFindersCache(ratingsEntry);
-		cacheUniqueFindersCache(ratingsEntry);
+		clearUniqueFindersCache((RatingsEntry)ratingsEntryModelImpl);
+		cacheUniqueFindersCache((RatingsEntry)ratingsEntryModelImpl, isNew);
 
 		ratingsEntry.resetOriginalValues();
 
@@ -2885,6 +2911,7 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 		ratingsEntryImpl.setClassNameId(ratingsEntry.getClassNameId());
 		ratingsEntryImpl.setClassPK(ratingsEntry.getClassPK());
 		ratingsEntryImpl.setScore(ratingsEntry.getScore());
+		ratingsEntryImpl.setLastPublishDate(ratingsEntry.getLastPublishDate());
 
 		return ratingsEntryImpl;
 	}
@@ -3245,6 +3272,11 @@ public class RatingsEntryPersistenceImpl extends BasePersistenceImpl<RatingsEntr
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return RatingsEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

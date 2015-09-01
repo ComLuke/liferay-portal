@@ -15,9 +15,10 @@
 package com.liferay.journal.content.web.portlet;
 
 import com.liferay.journal.content.web.constants.JournalContentPortletKeys;
+import com.liferay.journal.model.JournalArticle;
+import com.liferay.journal.service.JournalContentSearchLocalService;
 import com.liferay.journal.web.asset.JournalArticleAssetRenderer;
 import com.liferay.journal.web.asset.JournalArticleAssetRendererFactory;
-import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.portlet.AddPortletProvider;
 import com.liferay.portal.kernel.portlet.BasePortletProvider;
 import com.liferay.portal.model.Layout;
@@ -25,8 +26,6 @@ import com.liferay.portal.theme.ThemeDisplay;
 import com.liferay.portlet.asset.AssetRendererFactoryRegistryUtil;
 import com.liferay.portlet.asset.model.AssetEntry;
 import com.liferay.portlet.asset.service.AssetEntryLocalService;
-import com.liferay.portlet.journal.model.JournalArticle;
-import com.liferay.portlet.journal.service.JournalContentSearchLocalService;
 
 import javax.portlet.PortletPreferences;
 
@@ -38,9 +37,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	immediate = true,
-	property = {
-		"model.class.name=com.liferay.portlet.journal.model.JournalArticle"
-	},
+	property = {"model.class.name=com.liferay.journal.model.JournalArticle"},
 	service = AddPortletProvider.class
 )
 public class JournalContentAddPortletProvider
@@ -84,7 +81,7 @@ public class JournalContentAddPortletProvider
 	}
 
 	@Override
-	protected long getPlid(ThemeDisplay themeDisplay) throws PortalException {
+	protected long getPlid(ThemeDisplay themeDisplay) {
 		return themeDisplay.getPlid();
 	}
 

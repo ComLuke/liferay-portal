@@ -71,6 +71,19 @@ public class WebDAVPropsModelImpl extends BaseModelImpl<WebDAVProps>
 			{ "classPK", Types.BIGINT },
 			{ "props", Types.CLOB }
 		};
+	public static final Map<String, Integer> TABLE_COLUMNS_MAP = new HashMap<String, Integer>();
+
+	static {
+		TABLE_COLUMNS_MAP.put("mvccVersion", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("webDavPropsId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("companyId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("createDate", Types.TIMESTAMP);
+		TABLE_COLUMNS_MAP.put("modifiedDate", Types.TIMESTAMP);
+		TABLE_COLUMNS_MAP.put("classNameId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("classPK", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("props", Types.CLOB);
+	}
+
 	public static final String TABLE_SQL_CREATE = "create table WebDAVProps (mvccVersion LONG default 0,webDavPropsId LONG not null primary key,companyId LONG,createDate DATE null,modifiedDate DATE null,classNameId LONG,classPK LONG,props TEXT null)";
 	public static final String TABLE_SQL_DROP = "drop table WebDAVProps";
 	public static final String ORDER_BY_JPQL = " ORDER BY webDAVProps.webDavPropsId ASC";
@@ -241,8 +254,14 @@ public class WebDAVPropsModelImpl extends BaseModelImpl<WebDAVProps>
 		return _modifiedDate;
 	}
 
+	public boolean hasSetModifiedDate() {
+		return _setModifiedDate;
+	}
+
 	@Override
 	public void setModifiedDate(Date modifiedDate) {
+		_setModifiedDate = true;
+
 		_modifiedDate = modifiedDate;
 	}
 
@@ -426,6 +445,8 @@ public class WebDAVPropsModelImpl extends BaseModelImpl<WebDAVProps>
 	public void resetOriginalValues() {
 		WebDAVPropsModelImpl webDAVPropsModelImpl = this;
 
+		webDAVPropsModelImpl._setModifiedDate = false;
+
 		webDAVPropsModelImpl._originalClassNameId = webDAVPropsModelImpl._classNameId;
 
 		webDAVPropsModelImpl._setOriginalClassNameId = false;
@@ -560,6 +581,7 @@ public class WebDAVPropsModelImpl extends BaseModelImpl<WebDAVProps>
 	private long _companyId;
 	private Date _createDate;
 	private Date _modifiedDate;
+	private boolean _setModifiedDate;
 	private long _classNameId;
 	private long _originalClassNameId;
 	private boolean _setOriginalClassNameId;

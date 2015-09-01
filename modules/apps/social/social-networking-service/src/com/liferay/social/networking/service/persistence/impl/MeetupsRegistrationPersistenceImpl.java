@@ -30,6 +30,8 @@ import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.social.networking.exception.NoSuchMeetupsRegistrationException;
@@ -41,6 +43,7 @@ import com.liferay.social.networking.service.persistence.MeetupsRegistrationPers
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1428,8 +1431,8 @@ public class MeetupsRegistrationPersistenceImpl extends BasePersistenceImpl<Meet
 	}
 
 	protected void cacheUniqueFindersCache(
-		MeetupsRegistration meetupsRegistration) {
-		if (meetupsRegistration.isNew()) {
+		MeetupsRegistration meetupsRegistration, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					meetupsRegistration.getUserId(),
 					meetupsRegistration.getMeetupsEntryId()
@@ -1593,6 +1596,30 @@ public class MeetupsRegistrationPersistenceImpl extends BasePersistenceImpl<Meet
 
 		MeetupsRegistrationModelImpl meetupsRegistrationModelImpl = (MeetupsRegistrationModelImpl)meetupsRegistration;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (meetupsRegistration.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				meetupsRegistration.setCreateDate(now);
+			}
+			else {
+				meetupsRegistration.setCreateDate(serviceContext.getCreateDate(
+						now));
+			}
+		}
+
+		if (!meetupsRegistrationModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				meetupsRegistration.setModifiedDate(now);
+			}
+			else {
+				meetupsRegistration.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -1604,7 +1631,7 @@ public class MeetupsRegistrationPersistenceImpl extends BasePersistenceImpl<Meet
 				meetupsRegistration.setNew(false);
 			}
 			else {
-				session.merge(meetupsRegistration);
+				meetupsRegistration = (MeetupsRegistration)session.merge(meetupsRegistration);
 			}
 		}
 		catch (Exception e) {
@@ -1668,8 +1695,9 @@ public class MeetupsRegistrationPersistenceImpl extends BasePersistenceImpl<Meet
 			MeetupsRegistrationImpl.class, meetupsRegistration.getPrimaryKey(),
 			meetupsRegistration, false);
 
-		clearUniqueFindersCache(meetupsRegistration);
-		cacheUniqueFindersCache(meetupsRegistration);
+		clearUniqueFindersCache((MeetupsRegistration)meetupsRegistrationModelImpl);
+		cacheUniqueFindersCache((MeetupsRegistration)meetupsRegistrationModelImpl,
+			isNew);
 
 		meetupsRegistration.resetOriginalValues();
 
@@ -2054,6 +2082,11 @@ public class MeetupsRegistrationPersistenceImpl extends BasePersistenceImpl<Meet
 		}
 
 		return count.intValue();
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MeetupsRegistrationModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

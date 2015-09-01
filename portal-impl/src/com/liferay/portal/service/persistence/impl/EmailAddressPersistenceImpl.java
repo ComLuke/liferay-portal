@@ -37,11 +37,14 @@ import com.liferay.portal.model.EmailAddress;
 import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.EmailAddressImpl;
 import com.liferay.portal.model.impl.EmailAddressModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.EmailAddressPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3990,6 +3993,28 @@ public class EmailAddressPersistenceImpl extends BasePersistenceImpl<EmailAddres
 			emailAddress.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (emailAddress.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				emailAddress.setCreateDate(now);
+			}
+			else {
+				emailAddress.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!emailAddressModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				emailAddress.setModifiedDate(now);
+			}
+			else {
+				emailAddress.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -4001,7 +4026,7 @@ public class EmailAddressPersistenceImpl extends BasePersistenceImpl<EmailAddres
 				emailAddress.setNew(false);
 			}
 			else {
-				session.merge(emailAddress);
+				emailAddress = (EmailAddress)session.merge(emailAddress);
 			}
 		}
 		catch (Exception e) {
@@ -4194,6 +4219,7 @@ public class EmailAddressPersistenceImpl extends BasePersistenceImpl<EmailAddres
 		emailAddressImpl.setAddress(emailAddress.getAddress());
 		emailAddressImpl.setTypeId(emailAddress.getTypeId());
 		emailAddressImpl.setPrimary(emailAddress.isPrimary());
+		emailAddressImpl.setLastPublishDate(emailAddress.getLastPublishDate());
 
 		return emailAddressImpl;
 	}
@@ -4554,6 +4580,11 @@ public class EmailAddressPersistenceImpl extends BasePersistenceImpl<EmailAddres
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return EmailAddressModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

@@ -29,27 +29,27 @@
 
 		<liferay-ui:input-move-boxes
 			leftBoxName="currentLanguageIds"
-			leftList="<%= languageDisplayContext.getCurrentLanguageIdKVPs() %>"
+			leftList="<%= siteNavigationLanguageDisplayContext.getCurrentLanguageIdKVPs() %>"
 			leftReorder="true"
 			leftTitle="current"
 			rightBoxName="availableLanguageIds"
-			rightList="<%= languageDisplayContext.getAvailableLanguageIdKVPs() %>"
+			rightList="<%= siteNavigationLanguageDisplayContext.getAvailableLanguageIdKVPs() %>"
 			rightTitle="available"
 		/>
 	</aui:fieldset>
 
 	<aui:fieldset>
 		<div class="display-template">
-			<liferay-ui:ddm-template-selector
+			<liferay-ddm:template-selector
 				className="<%= LanguageEntry.class.getName() %>"
-				displayStyle="<%= languageDisplayContext.getDisplayStyle() %>"
-				displayStyleGroupId="<%= languageDisplayContext.getDisplayStyleGroupId() %>"
+				displayStyle="<%= languagePortletInstanceConfiguration.displayStyle() %>"
+				displayStyleGroupId="<%= siteNavigationLanguageDisplayContext.getDisplayStyleGroupId() %>"
 				refreshURL="<%= configurationRenderURL %>"
 			/>
 		</div>
 	</aui:fieldset>
 
-	<aui:input name="preferences--displayCurrentLocale--" type="checkbox" value="<%= languageDisplayContext.isDisplayCurrentLocale() %>" />
+	<aui:input name="preferences--displayCurrentLocale--" type="checkbox" value="<%= languagePortletInstanceConfiguration.displayCurrentLocale() %>" />
 
 	<aui:button-row>
 		<aui:button type="submit" />

@@ -40,11 +40,14 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2354,8 +2357,9 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 		}
 	}
 
-	protected void cacheUniqueFindersCache(PollsQuestion pollsQuestion) {
-		if (pollsQuestion.isNew()) {
+	protected void cacheUniqueFindersCache(PollsQuestion pollsQuestion,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					pollsQuestion.getUuid(), pollsQuestion.getGroupId()
 				};
@@ -2522,6 +2526,29 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 			pollsQuestion.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (pollsQuestion.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				pollsQuestion.setCreateDate(now);
+			}
+			else {
+				pollsQuestion.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!pollsQuestionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				pollsQuestion.setModifiedDate(now);
+			}
+			else {
+				pollsQuestion.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2533,7 +2560,7 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 				pollsQuestion.setNew(false);
 			}
 			else {
-				session.merge(pollsQuestion);
+				pollsQuestion = (PollsQuestion)session.merge(pollsQuestion);
 			}
 		}
 		catch (Exception e) {
@@ -2610,8 +2637,8 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 			PollsQuestionImpl.class, pollsQuestion.getPrimaryKey(),
 			pollsQuestion, false);
 
-		clearUniqueFindersCache(pollsQuestion);
-		cacheUniqueFindersCache(pollsQuestion);
+		clearUniqueFindersCache((PollsQuestion)pollsQuestionModelImpl);
+		cacheUniqueFindersCache((PollsQuestion)pollsQuestionModelImpl, isNew);
 
 		pollsQuestion.resetOriginalValues();
 
@@ -2639,6 +2666,7 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 		pollsQuestionImpl.setTitle(pollsQuestion.getTitle());
 		pollsQuestionImpl.setDescription(pollsQuestion.getDescription());
 		pollsQuestionImpl.setExpirationDate(pollsQuestion.getExpirationDate());
+		pollsQuestionImpl.setLastPublishDate(pollsQuestion.getLastPublishDate());
 		pollsQuestionImpl.setLastVoteDate(pollsQuestion.getLastVoteDate());
 
 		return pollsQuestionImpl;
@@ -3000,6 +3028,11 @@ public class PollsQuestionPersistenceImpl extends BasePersistenceImpl<PollsQuest
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return PollsQuestionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

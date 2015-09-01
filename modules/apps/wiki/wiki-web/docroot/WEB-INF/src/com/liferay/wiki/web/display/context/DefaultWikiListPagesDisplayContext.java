@@ -16,6 +16,7 @@ package com.liferay.wiki.web.display.context;
 
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.servlet.taglib.ui.DeleteMenuItem;
@@ -32,13 +33,13 @@ import com.liferay.portal.security.permission.ActionKeys;
 import com.liferay.portal.service.SubscriptionLocalServiceUtil;
 import com.liferay.portlet.trash.util.TrashUtil;
 import com.liferay.taglib.security.PermissionsURLTag;
+import com.liferay.wiki.configuration.WikiGroupServiceOverriddenConfiguration;
 import com.liferay.wiki.display.context.WikiListPagesDisplayContext;
 import com.liferay.wiki.display.context.WikiUIItemKeys;
 import com.liferay.wiki.model.WikiNode;
 import com.liferay.wiki.model.WikiPage;
 import com.liferay.wiki.service.permission.WikiNodePermissionChecker;
 import com.liferay.wiki.service.permission.WikiPagePermissionChecker;
-import com.liferay.wiki.settings.WikiGroupServiceSettings;
 import com.liferay.wiki.web.display.context.util.WikiRequestHelper;
 
 import java.util.ArrayList;
@@ -119,7 +120,7 @@ public class DefaultWikiListPagesDisplayContext
 		URLToolbarItem addPageURLToolbarItem = new URLToolbarItem();
 
 		addPageURLToolbarItem.setKey(WikiUIItemKeys.ADD_PAGE);
-		addPageURLToolbarItem.setLabel("add-page");
+		addPageURLToolbarItem.setLabel(LanguageUtil.get(_request, "add-page"));
 		addPageURLToolbarItem.setURL(portletURL.toString());
 
 		toolbarItems.add(addPageURLToolbarItem);
@@ -287,7 +288,8 @@ public class DefaultWikiListPagesDisplayContext
 		portletURL.setParameter("struts_action", "/wiki/move_page");
 		portletURL.setParameter("redirect", _wikiRequestHelper.getCurrentURL());
 		portletURL.setParameter("nodeId", String.valueOf(wikiPage.getNodeId()));
-		portletURL.setParameter("title", StringPool.BLANK);
+		portletURL.setParameter(
+			"title", HtmlUtil.unescape(wikiPage.getTitle()));
 
 		urlMenuItem.setURL(portletURL.toString());
 
@@ -332,14 +334,16 @@ public class DefaultWikiListPagesDisplayContext
 	protected void addSubscriptionMenuItem(
 		List<MenuItem> menuItems, WikiPage wikiPage) {
 
-		WikiGroupServiceSettings wikiGroupServiceSettings =
-			_wikiRequestHelper.getWikiGroupServiceSettings();
+		WikiGroupServiceOverriddenConfiguration
+			wikiGroupServiceOverriddenConfiguration =
+				_wikiRequestHelper.getWikiGroupServiceOverriddenConfiguration();
 
 		if (!WikiPagePermissionChecker.contains(
 				_wikiRequestHelper.getPermissionChecker(), wikiPage,
 				ActionKeys.SUBSCRIBE) ||
-			(!wikiGroupServiceSettings.emailPageAddedEnabled() &&
-			 !wikiGroupServiceSettings.emailPageUpdatedEnabled())) {
+			(!wikiGroupServiceOverriddenConfiguration.emailPageAddedEnabled() &&
+			 !wikiGroupServiceOverriddenConfiguration.
+				 emailPageUpdatedEnabled())) {
 
 			return;
 		}

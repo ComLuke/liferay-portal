@@ -42,6 +42,8 @@ import com.liferay.portal.model.Organization;
 import com.liferay.portal.model.impl.OrganizationImpl;
 import com.liferay.portal.model.impl.OrganizationModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.GroupPersistence;
 import com.liferay.portal.service.persistence.OrganizationPersistence;
 import com.liferay.portal.service.persistence.UserPersistence;
@@ -49,6 +51,7 @@ import com.liferay.portal.service.persistence.UserPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -6473,8 +6476,9 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Organization organization) {
-		if (organization.isNew()) {
+	protected void cacheUniqueFindersCache(Organization organization,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					organization.getCompanyId(), organization.getName()
 				};
@@ -6646,6 +6650,28 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 			organization.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (organization.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				organization.setCreateDate(now);
+			}
+			else {
+				organization.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!organizationModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				organization.setModifiedDate(now);
+			}
+			else {
+				organization.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -6657,7 +6683,7 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 				organization.setNew(false);
 			}
 			else {
-				session.merge(organization);
+				organization = (Organization)session.merge(organization);
 			}
 		}
 		catch (Exception e) {
@@ -6776,8 +6802,8 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 			OrganizationImpl.class, organization.getPrimaryKey(), organization,
 			false);
 
-		clearUniqueFindersCache(organization);
-		cacheUniqueFindersCache(organization);
+		clearUniqueFindersCache((Organization)organizationModelImpl);
+		cacheUniqueFindersCache((Organization)organizationModelImpl, isNew);
 
 		organization.resetOriginalValues();
 
@@ -6812,6 +6838,7 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 		organizationImpl.setStatusId(organization.getStatusId());
 		organizationImpl.setComments(organization.getComments());
 		organizationImpl.setLogoId(organization.getLogoId());
+		organizationImpl.setLastPublishDate(organization.getLastPublishDate());
 
 		return organizationImpl;
 	}
@@ -7701,6 +7728,11 @@ public class OrganizationPersistenceImpl extends BasePersistenceImpl<Organizatio
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return OrganizationModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

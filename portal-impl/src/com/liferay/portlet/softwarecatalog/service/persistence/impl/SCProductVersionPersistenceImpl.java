@@ -33,6 +33,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 import com.liferay.portal.service.persistence.impl.TableMapper;
 import com.liferay.portal.service.persistence.impl.TableMapperFactory;
@@ -47,6 +49,7 @@ import com.liferay.portlet.softwarecatalog.service.persistence.SCProductVersionP
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -920,8 +923,9 @@ public class SCProductVersionPersistenceImpl extends BasePersistenceImpl<SCProdu
 		}
 	}
 
-	protected void cacheUniqueFindersCache(SCProductVersion scProductVersion) {
-		if (scProductVersion.isNew()) {
+	protected void cacheUniqueFindersCache(SCProductVersion scProductVersion,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] { scProductVersion.getDirectDownloadURL() };
 
 			FinderCacheUtil.putResult(FINDER_PATH_COUNT_BY_DIRECTDOWNLOADURL,
@@ -1080,6 +1084,29 @@ public class SCProductVersionPersistenceImpl extends BasePersistenceImpl<SCProdu
 
 		SCProductVersionModelImpl scProductVersionModelImpl = (SCProductVersionModelImpl)scProductVersion;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (scProductVersion.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				scProductVersion.setCreateDate(now);
+			}
+			else {
+				scProductVersion.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!scProductVersionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				scProductVersion.setModifiedDate(now);
+			}
+			else {
+				scProductVersion.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -1091,7 +1118,7 @@ public class SCProductVersionPersistenceImpl extends BasePersistenceImpl<SCProdu
 				scProductVersion.setNew(false);
 			}
 			else {
-				session.merge(scProductVersion);
+				scProductVersion = (SCProductVersion)session.merge(scProductVersion);
 			}
 		}
 		catch (Exception e) {
@@ -1134,8 +1161,9 @@ public class SCProductVersionPersistenceImpl extends BasePersistenceImpl<SCProdu
 			SCProductVersionImpl.class, scProductVersion.getPrimaryKey(),
 			scProductVersion, false);
 
-		clearUniqueFindersCache(scProductVersion);
-		cacheUniqueFindersCache(scProductVersion);
+		clearUniqueFindersCache((SCProductVersion)scProductVersionModelImpl);
+		cacheUniqueFindersCache((SCProductVersion)scProductVersionModelImpl,
+			isNew);
 
 		scProductVersion.resetOriginalValues();
 
@@ -1801,6 +1829,11 @@ public class SCProductVersionPersistenceImpl extends BasePersistenceImpl<SCProdu
 		catch (Exception e) {
 			throw processException(e);
 		}
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return SCProductVersionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

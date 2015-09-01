@@ -17,8 +17,9 @@
 <%@ include file="/init.jsp" %>
 
 <liferay-ui:language
-	ddmTemplateGroupId="<%= languageDisplayContext.getDisplayStyleGroupId() %>"
-	ddmTemplateKey="<%= languageDisplayContext.getDDMTemplateKey() %>"
-	displayCurrentLocale="<%= languageDisplayContext.isDisplayCurrentLocale() %>"
-	languageIds="<%= languageDisplayContext.getLanguageIds() %>"
+	ddmTemplateGroupId="<%= siteNavigationLanguageDisplayContext.getDisplayStyleGroupId() %>"
+	ddmTemplateKey="<%= siteNavigationLanguageDisplayContext.getDDMTemplateKey() %>"
+	displayCurrentLocale="<%= languagePortletInstanceConfiguration.displayCurrentLocale() %>"
+	languageIds="<%= siteNavigationLanguageDisplayContext.getLanguageIds() %>"
+	useNamespace="<%= false %>"
 />

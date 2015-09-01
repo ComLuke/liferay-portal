@@ -17,7 +17,7 @@ package com.liferay.asset.categories.navigation.web.display.context;
 import com.liferay.asset.categories.navigation.web.configuration.AssetCategoriesNavigationPortletInstanceConfiguration;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
-import com.liferay.portal.kernel.settings.SettingsException;
+import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.util.KeyValuePair;
 import com.liferay.portal.kernel.util.KeyValuePairComparator;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -44,7 +44,7 @@ import javax.servlet.http.HttpServletRequest;
 public class AssetCategoriesNavigationDisplayContext {
 
 	public AssetCategoriesNavigationDisplayContext(HttpServletRequest request)
-		throws SettingsException {
+		throws ConfigurationException {
 
 		_request = request;
 
@@ -56,6 +56,12 @@ public class AssetCategoriesNavigationDisplayContext {
 		_assetCategoriesNavigationPortletInstanceConfiguration =
 			portletDisplay.getPortletInstanceConfiguration(
 				AssetCategoriesNavigationPortletInstanceConfiguration.class);
+	}
+
+	public AssetCategoriesNavigationPortletInstanceConfiguration
+		getAssetCategoriesNavigationPortletInstanceConfiguration() {
+
+		return _assetCategoriesNavigationPortletInstanceConfiguration;
 	}
 
 	public List<AssetVocabulary> getAssetVocabularies() throws PortalException {
@@ -194,18 +200,6 @@ public class AssetCategoriesNavigationDisplayContext {
 		return _ddmTemplateAssetVocabularies;
 	}
 
-	public String getDisplayStyle() {
-		if (_displayStyle != null) {
-			return _displayStyle;
-		}
-
-		_displayStyle =
-			_assetCategoriesNavigationPortletInstanceConfiguration.
-				displayStyle();
-
-		return _displayStyle;
-	}
-
 	public long getDisplayStyleGroupId() {
 		if (_displayStyleGroupId != 0) {
 			return _displayStyleGroupId;
@@ -225,18 +219,6 @@ public class AssetCategoriesNavigationDisplayContext {
 		return _displayStyleGroupId;
 	}
 
-	public boolean isAllAssetVocabularies() {
-		if (_allAssetVocabularies != null) {
-			return _allAssetVocabularies;
-		}
-
-		_allAssetVocabularies =
-			_assetCategoriesNavigationPortletInstanceConfiguration.
-				allAssetVocabularies();
-
-		return _allAssetVocabularies;
-	}
-
 	protected String getTitle(AssetVocabulary assetVocabulary) {
 		ThemeDisplay themeDisplay = (ThemeDisplay)_request.getAttribute(
 			WebKeys.THEME_DISPLAY);
@@ -250,14 +232,12 @@ public class AssetCategoriesNavigationDisplayContext {
 		return title;
 	}
 
-	private Boolean _allAssetVocabularies;
 	private final AssetCategoriesNavigationPortletInstanceConfiguration
 		_assetCategoriesNavigationPortletInstanceConfiguration;
 	private List<AssetVocabulary> _assetVocabularies;
 	private long[] _assetVocabularyIds;
 	private long[] _availableAssetVocabularyIds;
 	private List<AssetVocabulary> _ddmTemplateAssetVocabularies;
-	private String _displayStyle;
 	private long _displayStyleGroupId;
 	private final HttpServletRequest _request;
 

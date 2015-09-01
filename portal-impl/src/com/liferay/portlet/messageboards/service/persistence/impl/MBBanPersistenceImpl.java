@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.messageboards.NoSuchBanException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.messageboards.service.persistence.MBBanPersistence;
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3140,8 +3143,8 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(MBBan mbBan) {
-		if (mbBan.isNew()) {
+	protected void cacheUniqueFindersCache(MBBan mbBan, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] { mbBan.getUuid(), mbBan.getGroupId() };
 
 			FinderCacheUtil.putResult(FINDER_PATH_COUNT_BY_UUID_G, args,
@@ -3332,6 +3335,28 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 			mbBan.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (mbBan.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				mbBan.setCreateDate(now);
+			}
+			else {
+				mbBan.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!mbBanModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				mbBan.setModifiedDate(now);
+			}
+			else {
+				mbBan.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3343,7 +3368,7 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 				mbBan.setNew(false);
 			}
 			else {
-				session.merge(mbBan);
+				mbBan = (MBBan)session.merge(mbBan);
 			}
 		}
 		catch (Exception e) {
@@ -3448,8 +3473,8 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 		EntityCacheUtil.putResult(MBBanModelImpl.ENTITY_CACHE_ENABLED,
 			MBBanImpl.class, mbBan.getPrimaryKey(), mbBan, false);
 
-		clearUniqueFindersCache(mbBan);
-		cacheUniqueFindersCache(mbBan);
+		clearUniqueFindersCache((MBBan)mbBanModelImpl);
+		cacheUniqueFindersCache((MBBan)mbBanModelImpl, isNew);
 
 		mbBan.resetOriginalValues();
 
@@ -3475,6 +3500,7 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 		mbBanImpl.setCreateDate(mbBan.getCreateDate());
 		mbBanImpl.setModifiedDate(mbBan.getModifiedDate());
 		mbBanImpl.setBanUserId(mbBan.getBanUserId());
+		mbBanImpl.setLastPublishDate(mbBan.getLastPublishDate());
 
 		return mbBanImpl;
 	}
@@ -3833,6 +3859,11 @@ public class MBBanPersistenceImpl extends BasePersistenceImpl<MBBan>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MBBanModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

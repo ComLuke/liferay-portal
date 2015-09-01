@@ -36,6 +36,8 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 import com.liferay.portal.service.persistence.impl.TableMapper;
 import com.liferay.portal.service.persistence.impl.TableMapperFactory;
@@ -50,6 +52,7 @@ import com.liferay.portlet.documentlibrary.service.persistence.DLFolderPersisten
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10789,8 +10792,8 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(DLFolder dlFolder) {
-		if (dlFolder.isNew()) {
+	protected void cacheUniqueFindersCache(DLFolder dlFolder, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					dlFolder.getUuid(), dlFolder.getGroupId()
 				};
@@ -11035,6 +11038,28 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 			dlFolder.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (dlFolder.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				dlFolder.setCreateDate(now);
+			}
+			else {
+				dlFolder.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!dlFolderModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				dlFolder.setModifiedDate(now);
+			}
+			else {
+				dlFolder.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -11046,7 +11071,7 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 				dlFolder.setNew(false);
 			}
 			else {
-				session.merge(dlFolder);
+				dlFolder = (DLFolder)session.merge(dlFolder);
 			}
 		}
 		catch (Exception e) {
@@ -11323,8 +11348,8 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 		EntityCacheUtil.putResult(DLFolderModelImpl.ENTITY_CACHE_ENABLED,
 			DLFolderImpl.class, dlFolder.getPrimaryKey(), dlFolder, false);
 
-		clearUniqueFindersCache(dlFolder);
-		cacheUniqueFindersCache(dlFolder);
+		clearUniqueFindersCache((DLFolder)dlFolderModelImpl);
+		cacheUniqueFindersCache((DLFolder)dlFolderModelImpl, isNew);
 
 		dlFolder.resetOriginalValues();
 
@@ -11359,6 +11384,7 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 		dlFolderImpl.setDefaultFileEntryTypeId(dlFolder.getDefaultFileEntryTypeId());
 		dlFolderImpl.setHidden(dlFolder.isHidden());
 		dlFolderImpl.setRestrictionType(dlFolder.getRestrictionType());
+		dlFolderImpl.setLastPublishDate(dlFolder.getLastPublishDate());
 		dlFolderImpl.setStatus(dlFolder.getStatus());
 		dlFolderImpl.setStatusByUserId(dlFolder.getStatusByUserId());
 		dlFolderImpl.setStatusByUserName(dlFolder.getStatusByUserName());
@@ -12001,6 +12027,11 @@ public class DLFolderPersistenceImpl extends BasePersistenceImpl<DLFolder>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return DLFolderModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

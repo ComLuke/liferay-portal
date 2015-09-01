@@ -14,9 +14,10 @@
 
 package com.liferay.portal.events;
 
-import com.liferay.portal.cache.bootstrap.ClusterLinkBootstrapLoaderHelperUtil;
 import com.liferay.portal.fabric.server.FabricServerUtil;
 import com.liferay.portal.jericho.CachedLoggerProvider;
+import com.liferay.portal.kernel.backgroundtask.BackgroundTaskManager;
+import com.liferay.portal.kernel.backgroundtask.BackgroundTaskManagerUtil;
 import com.liferay.portal.kernel.cluster.ClusterExecutor;
 import com.liferay.portal.kernel.cluster.ClusterMasterExecutor;
 import com.liferay.portal.kernel.events.ActionException;
@@ -35,16 +36,18 @@ import com.liferay.portal.kernel.resiliency.mpi.MPIHelperUtil;
 import com.liferay.portal.kernel.resiliency.spi.agent.annotation.Direction;
 import com.liferay.portal.kernel.resiliency.spi.agent.annotation.DistributedRegistry;
 import com.liferay.portal.kernel.resiliency.spi.agent.annotation.MatchType;
-import com.liferay.portal.kernel.scheduler.SchedulerEngineHelperUtil;
+import com.liferay.portal.kernel.scheduler.SchedulerEngineHelper;
+import com.liferay.portal.kernel.scheduler.SchedulerLifecycle;
+import com.liferay.portal.kernel.search.IndexerRegistry;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.util.PortalLifecycle;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.plugin.PluginPackageIndexer;
-import com.liferay.portal.service.BackgroundTaskLocalServiceUtil;
-import com.liferay.portal.service.LockLocalServiceUtil;
 import com.liferay.portal.tools.DBUpgrader;
 import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.util.WebKeys;
 import com.liferay.portlet.messageboards.util.MBMessageIndexer;
+import com.liferay.registry.Filter;
 import com.liferay.registry.Registry;
 import com.liferay.registry.RegistryUtil;
 import com.liferay.registry.dependency.ServiceDependencyListener;
@@ -54,7 +57,7 @@ import com.liferay.taglib.servlet.JspFactorySwapper;
 import javax.portlet.MimeResponse;
 import javax.portlet.PortletRequest;
 
-import org.apache.struts.taglib.tiles.ComponentConstants;
+import org.apache.struts.tiles.taglib.ComponentConstants;
 
 /**
  * @author Brian Wing Shun Chan
@@ -105,8 +108,26 @@ public class StartupAction extends SimpleAction {
 
 		// Indexers
 
-		IndexerRegistryUtil.register(new MBMessageIndexer());
-		IndexerRegistryUtil.register(new PluginPackageIndexer());
+		ServiceDependencyManager indexerRegistryServiceDependencyManager =
+			new ServiceDependencyManager();
+
+		indexerRegistryServiceDependencyManager.registerDependencies(
+			IndexerRegistry.class);
+
+		indexerRegistryServiceDependencyManager.addServiceDependencyListener(
+			new ServiceDependencyListener() {
+
+				@Override
+				public void dependenciesFulfilled() {
+					IndexerRegistryUtil.register(new MBMessageIndexer());
+					IndexerRegistryUtil.register(new PluginPackageIndexer());
+				}
+
+				@Override
+				public void destroy() {
+				}
+
+			});
 
 		// Upgrade
 
@@ -116,33 +137,42 @@ public class StartupAction extends SimpleAction {
 
 		DBUpgrader.upgrade();
 
-		// Clear locks
-
-		if (_log.isDebugEnabled()) {
-			_log.debug("Clear locks");
-		}
-
-		try {
-			LockLocalServiceUtil.clear();
-		}
-		catch (Exception e) {
-			if (_log.isWarnEnabled()) {
-				_log.warn(
-					"Unable to clear locks because Lock table does not exist");
-			}
-		}
-
-		// Ehache bootstrap
-
-		ClusterLinkBootstrapLoaderHelperUtil.start();
-
 		// Scheduler
 
 		if (_log.isDebugEnabled()) {
 			_log.debug("Initialize scheduler engine lifecycle");
 		}
 
-		SchedulerEngineHelperUtil.initialize();
+		ServiceDependencyManager schedulerServiceDependencyManager =
+			new ServiceDependencyManager();
+
+		schedulerServiceDependencyManager.addServiceDependencyListener(
+			new ServiceDependencyListener() {
+
+				@Override
+				public void dependenciesFulfilled() {
+					SchedulerLifecycle schedulerLifecycle =
+						new SchedulerLifecycle();
+
+					schedulerLifecycle.registerPortalLifecycle(
+						PortalLifecycle.METHOD_INIT);
+				}
+
+				@Override
+				public void destroy() {
+				}
+
+			});
+
+		final Registry registry = RegistryUtil.getRegistry();
+
+		Filter filter = registry.getFilter(
+			"(objectClass=com.liferay.portal.scheduler.quartz.internal." +
+				"QuartzSchemaManager)");
+
+		schedulerServiceDependencyManager.registerDependencies(
+			new Class[] {SchedulerEngineHelper.class},
+			new Filter[] {filter});
 
 		// Verify
 
@@ -152,34 +182,38 @@ public class StartupAction extends SimpleAction {
 
 		DBUpgrader.verify();
 
-		// Background tasks
+		// Cluster master token listener
 
-		ServiceDependencyManager backgroundTaskServiceDependencyManager =
+		ServiceDependencyManager clusterMasterExecutorServiceDependencyManager =
 			new ServiceDependencyManager();
 
-		backgroundTaskServiceDependencyManager.registerDependencies(
-			ClusterExecutor.class, ClusterMasterExecutor.class);
+		clusterMasterExecutorServiceDependencyManager.
+			addServiceDependencyListener(
+				new ServiceDependencyListener() {
 
-		backgroundTaskServiceDependencyManager.addServiceDependencyListener(
-			new ServiceDependencyListener() {
+					@Override
+					public void dependenciesFulfilled() {
+						ClusterMasterExecutor clusterMasterExecutor =
+							registry.getService(ClusterMasterExecutor.class);
 
-				@Override
-				public void dependenciesFulfilled() {
-					Registry registry = RegistryUtil.getRegistry();
-
-					ClusterMasterExecutor clusterMasterExecutor =
-						registry.getService(ClusterMasterExecutor.class);
-
-					if (!clusterMasterExecutor.isEnabled()) {
-						BackgroundTaskLocalServiceUtil.cleanUpBackgroundTasks();
+						if (!clusterMasterExecutor.isEnabled()) {
+							BackgroundTaskManagerUtil.cleanUpBackgroundTasks();
+						}
+						else {
+							clusterMasterExecutor.
+								notifyMasterTokenTransitionListeners();
+						}
 					}
-				}
 
-				@Override
-				public void destroy() {
-				}
+					@Override
+					public void destroy() {
+					}
 
-			});
+				});
+
+		clusterMasterExecutorServiceDependencyManager.registerDependencies(
+			BackgroundTaskManager.class, ClusterExecutor.class,
+			ClusterMasterExecutor.class);
 
 		// Liferay JspFactory
 

@@ -40,11 +40,14 @@ import com.liferay.portal.model.PasswordPolicy;
 import com.liferay.portal.model.impl.PasswordPolicyImpl;
 import com.liferay.portal.model.impl.PasswordPolicyModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.PasswordPolicyPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3418,8 +3421,9 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 		}
 	}
 
-	protected void cacheUniqueFindersCache(PasswordPolicy passwordPolicy) {
-		if (passwordPolicy.isNew()) {
+	protected void cacheUniqueFindersCache(PasswordPolicy passwordPolicy,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					passwordPolicy.getCompanyId(),
 					passwordPolicy.getDefaultPolicy()
@@ -3628,6 +3632,29 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 			passwordPolicy.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (passwordPolicy.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				passwordPolicy.setCreateDate(now);
+			}
+			else {
+				passwordPolicy.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!passwordPolicyModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				passwordPolicy.setModifiedDate(now);
+			}
+			else {
+				passwordPolicy.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3639,7 +3666,7 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 				passwordPolicy.setNew(false);
 			}
 			else {
-				session.merge(passwordPolicy);
+				passwordPolicy = (PasswordPolicy)session.merge(passwordPolicy);
 			}
 		}
 		catch (Exception e) {
@@ -3718,8 +3745,8 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 			PasswordPolicyImpl.class, passwordPolicy.getPrimaryKey(),
 			passwordPolicy, false);
 
-		clearUniqueFindersCache(passwordPolicy);
-		cacheUniqueFindersCache(passwordPolicy);
+		clearUniqueFindersCache((PasswordPolicy)passwordPolicyModelImpl);
+		cacheUniqueFindersCache((PasswordPolicy)passwordPolicyModelImpl, isNew);
 
 		passwordPolicy.resetOriginalValues();
 
@@ -3771,6 +3798,7 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 		passwordPolicyImpl.setRequireUnlock(passwordPolicy.isRequireUnlock());
 		passwordPolicyImpl.setResetFailureCount(passwordPolicy.getResetFailureCount());
 		passwordPolicyImpl.setResetTicketMaxAge(passwordPolicy.getResetTicketMaxAge());
+		passwordPolicyImpl.setLastPublishDate(passwordPolicy.getLastPublishDate());
 
 		return passwordPolicyImpl;
 	}
@@ -4132,6 +4160,11 @@ public class PasswordPolicyPersistenceImpl extends BasePersistenceImpl<PasswordP
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return PasswordPolicyModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

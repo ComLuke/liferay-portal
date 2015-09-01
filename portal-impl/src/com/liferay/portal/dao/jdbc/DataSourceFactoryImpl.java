@@ -22,13 +22,13 @@ import com.liferay.portal.kernel.jndi.JNDIUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.pacl.DoPrivileged;
+import com.liferay.portal.kernel.util.ClassLoaderUtil;
 import com.liferay.portal.kernel.util.PropertiesUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.ServerDetector;
 import com.liferay.portal.kernel.util.SortedProperties;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.util.ClassLoaderUtil;
 import com.liferay.portal.util.JarUtil;
 import com.liferay.portal.util.PropsUtil;
 import com.liferay.portal.util.PropsValues;
@@ -295,11 +295,6 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 			if (StringUtil.equalsIgnoreCase(key, "url")) {
 				key = "jdbcUrl";
 			}
-			else if (StringUtil.equalsIgnoreCase(
-						key, "hikariConnectionCustomizerClassName")) {
-
-				key = "connectionCustomizerClassName";
-			}
 
 			// Ignore Liferay property
 
@@ -408,6 +403,7 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 			StringUtil.equalsIgnoreCase(key, "acquireRetryDelay") ||
 			StringUtil.equalsIgnoreCase(key, "connectionCustomizerClassName") ||
 			StringUtil.equalsIgnoreCase(key, "idleConnectionTestPeriod") ||
+			StringUtil.equalsIgnoreCase(key, "initialPoolSize") ||
 			StringUtil.equalsIgnoreCase(key, "maxIdleTime") ||
 			StringUtil.equalsIgnoreCase(key, "maxPoolSize") ||
 			StringUtil.equalsIgnoreCase(key, "minPoolSize") ||
@@ -416,9 +412,8 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 
 			return true;
 		}
-		else {
-			return false;
-		}
+
+		return false;
 	}
 
 	protected boolean isPropertyDBCP(String key) {
@@ -429,17 +424,16 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 
 			return true;
 		}
-		else {
-			return false;
-		}
+
+		return false;
 	}
 
 	protected boolean isPropertyHikariCP(String key) {
 		if (StringUtil.equalsIgnoreCase(key, "autoCommit") ||
+			StringUtil.equalsIgnoreCase(key, "connectionTestQuery") ||
 			StringUtil.equalsIgnoreCase(key, "connectionTimeout") ||
-			StringUtil.equalsIgnoreCase(
-				key, "hikariConnectionCustomizerClassName") ||
 			StringUtil.equalsIgnoreCase(key, "idleTimeout") ||
+			StringUtil.equalsIgnoreCase(key, "initializationFailFast") ||
 			StringUtil.equalsIgnoreCase(key, "maximumPoolSize") ||
 			StringUtil.equalsIgnoreCase(key, "maxLifetime") ||
 			StringUtil.equalsIgnoreCase(key, "minimumIdle") ||
@@ -447,9 +441,8 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 
 			return true;
 		}
-		else {
-			return false;
-		}
+
+		return false;
 	}
 
 	protected boolean isPropertyLiferay(String key) {
@@ -458,9 +451,8 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 
 			return true;
 		}
-		else {
-			return false;
-		}
+
+		return false;
 	}
 
 	protected boolean isPropertyTomcat(String key) {
@@ -472,9 +464,8 @@ public class DataSourceFactoryImpl implements DataSourceFactory {
 
 			return true;
 		}
-		else {
-			return false;
-		}
+
+		return false;
 	}
 
 	protected void testDatabaseClass(Properties properties) throws Exception {

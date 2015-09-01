@@ -33,9 +33,7 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Eudaldo Alonso
  */
-@Component(
-	immediate = true, service = DynamicInclude.class
-)
+@Component(immediate = true, service = DynamicInclude.class)
 public class PortletCSSBottomDynamicInclude extends BaseDynamicInclude {
 
 	@Override
@@ -55,18 +53,16 @@ public class PortletCSSBottomDynamicInclude extends BaseDynamicInclude {
 				_log.error("Unable to include JSP", se);
 			}
 
-			throw new IOException("Unable to include JSP", se);
+			throw new IOException("Unable to include " + _JSP_PATH, se);
 		}
 	}
 
 	@Override
 	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register("/html/common/themes/bottom-ext.jsp");
+		dynamicIncludeRegistry.register("/html/common/themes/bottom.jsp#post");
 	}
 
-	@Reference(
-		target = "(osgi.web.symbolicname=com.liferay.portlet.css.web)"
-	)
+	@Reference(target = "(osgi.web.symbolicname=com.liferay.portlet.css.web)")
 	protected void setServletContext(ServletContext servletContext) {
 		_servletContext = servletContext;
 	}

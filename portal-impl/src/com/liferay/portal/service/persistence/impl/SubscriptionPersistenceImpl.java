@@ -36,12 +36,15 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.Subscription;
 import com.liferay.portal.model.impl.SubscriptionImpl;
 import com.liferay.portal.model.impl.SubscriptionModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.SubscriptionPersistence;
 
 import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2832,8 +2835,9 @@ public class SubscriptionPersistenceImpl extends BasePersistenceImpl<Subscriptio
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Subscription subscription) {
-		if (subscription.isNew()) {
+	protected void cacheUniqueFindersCache(Subscription subscription,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					subscription.getCompanyId(), subscription.getUserId(),
 					subscription.getClassNameId(), subscription.getClassPK()
@@ -2996,6 +3000,28 @@ public class SubscriptionPersistenceImpl extends BasePersistenceImpl<Subscriptio
 
 		SubscriptionModelImpl subscriptionModelImpl = (SubscriptionModelImpl)subscription;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (subscription.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				subscription.setCreateDate(now);
+			}
+			else {
+				subscription.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!subscriptionModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				subscription.setModifiedDate(now);
+			}
+			else {
+				subscription.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3007,7 +3033,7 @@ public class SubscriptionPersistenceImpl extends BasePersistenceImpl<Subscriptio
 				subscription.setNew(false);
 			}
 			else {
-				session.merge(subscription);
+				subscription = (Subscription)session.merge(subscription);
 			}
 		}
 		catch (Exception e) {
@@ -3136,8 +3162,8 @@ public class SubscriptionPersistenceImpl extends BasePersistenceImpl<Subscriptio
 			SubscriptionImpl.class, subscription.getPrimaryKey(), subscription,
 			false);
 
-		clearUniqueFindersCache(subscription);
-		cacheUniqueFindersCache(subscription);
+		clearUniqueFindersCache((Subscription)subscriptionModelImpl);
+		cacheUniqueFindersCache((Subscription)subscriptionModelImpl, isNew);
 
 		subscription.resetOriginalValues();
 
@@ -3520,6 +3546,11 @@ public class SubscriptionPersistenceImpl extends BasePersistenceImpl<Subscriptio
 		}
 
 		return count.intValue();
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return SubscriptionModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

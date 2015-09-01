@@ -35,6 +35,8 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 import com.liferay.portal.service.persistence.impl.TableMapper;
 import com.liferay.portal.service.persistence.impl.TableMapperFactory;
@@ -49,6 +51,7 @@ import com.liferay.portlet.softwarecatalog.service.persistence.SCProductEntryPer
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2700,8 +2703,9 @@ public class SCProductEntryPersistenceImpl extends BasePersistenceImpl<SCProduct
 		}
 	}
 
-	protected void cacheUniqueFindersCache(SCProductEntry scProductEntry) {
-		if (scProductEntry.isNew()) {
+	protected void cacheUniqueFindersCache(SCProductEntry scProductEntry,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					scProductEntry.getRepoGroupId(),
 					scProductEntry.getRepoArtifactId()
@@ -2864,6 +2868,29 @@ public class SCProductEntryPersistenceImpl extends BasePersistenceImpl<SCProduct
 
 		SCProductEntryModelImpl scProductEntryModelImpl = (SCProductEntryModelImpl)scProductEntry;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (scProductEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				scProductEntry.setCreateDate(now);
+			}
+			else {
+				scProductEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!scProductEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				scProductEntry.setModifiedDate(now);
+			}
+			else {
+				scProductEntry.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2875,7 +2902,7 @@ public class SCProductEntryPersistenceImpl extends BasePersistenceImpl<SCProduct
 				scProductEntry.setNew(false);
 			}
 			else {
-				session.merge(scProductEntry);
+				scProductEntry = (SCProductEntry)session.merge(scProductEntry);
 			}
 		}
 		catch (Exception e) {
@@ -2954,8 +2981,8 @@ public class SCProductEntryPersistenceImpl extends BasePersistenceImpl<SCProduct
 			SCProductEntryImpl.class, scProductEntry.getPrimaryKey(),
 			scProductEntry, false);
 
-		clearUniqueFindersCache(scProductEntry);
-		cacheUniqueFindersCache(scProductEntry);
+		clearUniqueFindersCache((SCProductEntry)scProductEntryModelImpl);
+		cacheUniqueFindersCache((SCProductEntry)scProductEntryModelImpl, isNew);
 
 		scProductEntry.resetOriginalValues();
 
@@ -3624,6 +3651,11 @@ public class SCProductEntryPersistenceImpl extends BasePersistenceImpl<SCProduct
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return SCProductEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

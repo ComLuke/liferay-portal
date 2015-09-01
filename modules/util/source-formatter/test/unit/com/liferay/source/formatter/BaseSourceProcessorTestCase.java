@@ -15,6 +15,7 @@
 package com.liferay.source.formatter;
 
 import com.liferay.portal.kernel.util.CharPool;
+import com.liferay.portal.kernel.util.NaturalOrderStringComparator;
 import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -91,7 +92,7 @@ public class BaseSourceProcessorTestCase {
 
 		fileName = FilenameUtils.getBaseName(fileName);
 
-		if (!keepTestExtension && originalExtension.startsWith("test")) {
+		if (originalExtension.startsWith("test")) {
 			extension = extension.substring(4);
 		}
 
@@ -125,6 +126,8 @@ public class BaseSourceProcessorTestCase {
 		}
 
 		List<String> errorMessages = sourceFormatter.getErrorMessages();
+
+		Collections.sort(errorMessages, new NaturalOrderStringComparator());
 
 		if (!errorMessages.isEmpty() || (expectedErrorMessages.length > 0)) {
 			Assert.assertEquals(
@@ -174,7 +177,6 @@ public class BaseSourceProcessorTestCase {
 
 	protected final ClassLoader classLoader =
 		BaseSourceProcessorTestCase.class.getClassLoader();
-	protected boolean keepTestExtension = false;
 
 	private static final String _DIR_NAME =
 		"com/liferay/source/formatter/dependencies";

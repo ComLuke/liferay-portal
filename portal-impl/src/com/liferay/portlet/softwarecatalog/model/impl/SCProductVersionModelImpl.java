@@ -83,6 +83,23 @@ public class SCProductVersionModelImpl extends BaseModelImpl<SCProductVersion>
 			{ "directDownloadURL", Types.VARCHAR },
 			{ "repoStoreArtifact", Types.BOOLEAN }
 		};
+	public static final Map<String, Integer> TABLE_COLUMNS_MAP = new HashMap<String, Integer>();
+
+	static {
+		TABLE_COLUMNS_MAP.put("productVersionId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("companyId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("userId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("userName", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("createDate", Types.TIMESTAMP);
+		TABLE_COLUMNS_MAP.put("modifiedDate", Types.TIMESTAMP);
+		TABLE_COLUMNS_MAP.put("productEntryId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("version", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("changeLog", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("downloadPageURL", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("directDownloadURL", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("repoStoreArtifact", Types.BOOLEAN);
+	}
+
 	public static final String TABLE_SQL_CREATE = "create table SCProductVersion (productVersionId LONG not null primary key,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,productEntryId LONG,version VARCHAR(75) null,changeLog STRING null,downloadPageURL STRING null,directDownloadURL VARCHAR(2000) null,repoStoreArtifact BOOLEAN)";
 	public static final String TABLE_SQL_DROP = "drop table SCProductVersion";
 	public static final String ORDER_BY_JPQL = " ORDER BY scProductVersion.createDate DESC";
@@ -384,8 +401,14 @@ public class SCProductVersionModelImpl extends BaseModelImpl<SCProductVersion>
 		return _modifiedDate;
 	}
 
+	public boolean hasSetModifiedDate() {
+		return _setModifiedDate;
+	}
+
 	@Override
 	public void setModifiedDate(Date modifiedDate) {
+		_setModifiedDate = true;
+
 		_modifiedDate = modifiedDate;
 	}
 
@@ -608,6 +631,8 @@ public class SCProductVersionModelImpl extends BaseModelImpl<SCProductVersion>
 	public void resetOriginalValues() {
 		SCProductVersionModelImpl scProductVersionModelImpl = this;
 
+		scProductVersionModelImpl._setModifiedDate = false;
+
 		scProductVersionModelImpl._originalProductEntryId = scProductVersionModelImpl._productEntryId;
 
 		scProductVersionModelImpl._setOriginalProductEntryId = false;
@@ -797,6 +822,7 @@ public class SCProductVersionModelImpl extends BaseModelImpl<SCProductVersion>
 	private String _userName;
 	private Date _createDate;
 	private Date _modifiedDate;
+	private boolean _setModifiedDate;
 	private long _productEntryId;
 	private long _originalProductEntryId;
 	private boolean _setOriginalProductEntryId;

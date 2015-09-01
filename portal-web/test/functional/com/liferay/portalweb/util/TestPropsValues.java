@@ -49,6 +49,18 @@ public class TestPropsValues
 	public static final String DATABASE_DB2_USERNAME = TestPropsUtil.get(
 		"database.db2.username");
 
+	public static final String DATABASE_HSQL_DRIVER = TestPropsUtil.get(
+		"database.hsql.driver");
+
+	public static final String DATABASE_HSQL_PASSWORD = TestPropsUtil.get(
+		"database.hsql.password");
+
+	public static final String DATABASE_HSQL_URL = TestPropsUtil.get(
+		"database.hsql.url");
+
+	public static final String DATABASE_HSQL_USERNAME = TestPropsUtil.get(
+		"database.hsql.username");
+
 	public static final String DATABASE_MYSQL_DRIVER = TestPropsUtil.get(
 		"database.mysql.driver");
 
@@ -145,11 +157,26 @@ public class TestPropsValues
 	public static final String LCS_EMAIL_ADDRESS_2 = TestPropsUtil.get(
 		"lcs.email.address.2");
 
+	public static final String LCS_EMAIL_ADDRESS_3 = TestPropsUtil.get(
+		"lcs.email.address.3");
+
+	public static final String LCS_EMAIL_ID_1 = TestPropsUtil.get(
+		"lcs.email.id.1");
+
+	public static final String LCS_EMAIL_ID_2 = TestPropsUtil.get(
+		"lcs.email.id.2");
+
+	public static final String LCS_EMAIL_ID_3 = TestPropsUtil.get(
+		"lcs.email.id.3");
+
 	public static final String LCS_EMAIL_PASSWORD_1 = TestPropsUtil.get(
 		"lcs.email.password.1");
 
 	public static final String LCS_EMAIL_PASSWORD_2 = TestPropsUtil.get(
 		"lcs.email.password.2");
+
+	public static final String LCS_EMAIL_PASSWORD_3 = TestPropsUtil.get(
+		"lcs.email.password.3");
 
 	public static final String LIFERAY_PORTAL_BRANCH = TestPropsUtil.get(
 		"liferay.portal.branch");
@@ -193,6 +220,9 @@ public class TestPropsValues
 	public static final boolean MOBILE_DEVICE_ENABLED = GetterUtil.getBoolean(
 		TestPropsUtil.get("mobile.device.enabled"));
 
+	public static final String OSB_LCS_PORTLET_HOST_NAME = TestPropsUtil.get(
+		"osb.lcs.portlet.host.name");
+
 	public static final String OUTPUT_DIR_NAME = TestPropsUtil.get(
 		"output.dir");
 
@@ -204,11 +234,17 @@ public class TestPropsValues
 	public static final boolean SAVE_SOURCE = GetterUtil.getBoolean(
 		TestPropsUtil.get("save.source"));
 
+	public static final String SELENIUM_CHROME_DRIVER_EXECUTABLE =
+		TestPropsUtil.get("selenium.chrome.driver.executable");
+
 	public static final String SELENIUM_EXECUTABLE_DIR_NAME = TestPropsUtil.get(
 		"selenium.executable.dir");
 
 	public static final String SELENIUM_HOST = TestPropsUtil.get(
 		"selenium.host");
+
+	public static final String SELENIUM_IE_DRIVER_EXECUTABLE =
+		TestPropsUtil.get("selenium.ie.driver.executable");
 
 	public static final String SELENIUM_IMPLEMENTATION = TestPropsUtil.get(
 		"selenium.implementation");
@@ -236,7 +272,7 @@ public class TestPropsValues
 		GetterUtil.getBoolean(TestPropsUtil.get("test.assert.liferay.errors"));
 
 	public static final String TEST_BASE_DIR_NAME = TestPropsUtil.get(
-		"test.basedir");
+		"test.base.dir.name");
 
 	public static final String TEST_CLASS_COMMAND_NAME = TestPropsUtil.get(
 		"test.class.command.name");

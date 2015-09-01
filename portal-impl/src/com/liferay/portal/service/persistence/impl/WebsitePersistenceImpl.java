@@ -37,11 +37,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.Website;
 import com.liferay.portal.model.impl.WebsiteImpl;
 import com.liferay.portal.model.impl.WebsiteModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.WebsitePersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3977,6 +3980,28 @@ public class WebsitePersistenceImpl extends BasePersistenceImpl<Website>
 			website.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (website.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				website.setCreateDate(now);
+			}
+			else {
+				website.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!websiteModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				website.setModifiedDate(now);
+			}
+			else {
+				website.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3988,7 +4013,7 @@ public class WebsitePersistenceImpl extends BasePersistenceImpl<Website>
 				website.setNew(false);
 			}
 			else {
-				session.merge(website);
+				website = (Website)session.merge(website);
 			}
 		}
 		catch (Exception e) {
@@ -4178,6 +4203,7 @@ public class WebsitePersistenceImpl extends BasePersistenceImpl<Website>
 		websiteImpl.setUrl(website.getUrl());
 		websiteImpl.setTypeId(website.getTypeId());
 		websiteImpl.setPrimary(website.isPrimary());
+		websiteImpl.setLastPublishDate(website.getLastPublishDate());
 
 		return websiteImpl;
 	}
@@ -4537,6 +4563,11 @@ public class WebsitePersistenceImpl extends BasePersistenceImpl<Website>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return WebsiteModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

@@ -94,9 +94,9 @@ boolean changeStructure = GetterUtil.getBoolean(request.getAttribute("edit_artic
 				defaultDisplayLayout = LayoutLocalServiceUtil.fetchLayoutByUuidAndGroupId(layoutUuid, scopeGroupId, true);
 			}
 
-			AssetRendererFactory assetRendererFactory = AssetRendererFactoryRegistryUtil.getAssetRendererFactoryByClassName(JournalArticle.class.getName());
+			AssetRendererFactory<JournalArticle> assetRendererFactory = AssetRendererFactoryRegistryUtil.getAssetRendererFactoryByClass(JournalArticle.class);
 
-			AssetRenderer assetRenderer = assetRendererFactory.getAssetRenderer(article.getResourcePrimKey());
+			AssetRenderer<JournalArticle> assetRenderer = assetRendererFactory.getAssetRenderer(article.getResourcePrimKey());
 
 			String urlViewInContext = assetRenderer.getURLViewInContext(liferayPortletRequest, liferayPortletResponse, currentURL);
 			%>
@@ -106,13 +106,21 @@ boolean changeStructure = GetterUtil.getBoolean(request.getAttribute("edit_artic
 			</c:if>
 		</c:if>
 
-		<liferay-portlet:renderURL portletName="<%= PortletKeys.ITEM_SELECTOR %>" varImpl="documentSelectorURL" windowState="<%= LiferayWindowState.POP_UP.toString() %>">
-			<portlet:param name="mvcPath" value="/view.jsp" />
-			<portlet:param name="tabs1Names" value="pages" />
-			<portlet:param name="groupId" value="<%= String.valueOf(scopeGroupId) %>" />
-			<portlet:param name="checkContentDisplayPage" value="true" />
-			<portlet:param name="eventName" value='<%= renderResponse.getNamespace() + "selectDisplayPage" %>' />
-		</liferay-portlet:renderURL>
+		<%
+		String eventName = liferayPortletResponse.getNamespace() + "selectDisplayPage";
+
+		ItemSelector itemSelector = (ItemSelector)request.getAttribute(JournalWebKeys.ITEM_SELECTOR);
+
+		LayoutItemSelectorCriterion layoutItemSelectorCriterion = new LayoutItemSelectorCriterion();
+
+		List<ItemSelectorReturnType> desiredItemSelectorReturnTypes = new ArrayList<ItemSelectorReturnType>();
+
+		desiredItemSelectorReturnTypes.add(new UUIDItemSelectorReturnType());
+
+		layoutItemSelectorCriterion.setDesiredItemSelectorReturnTypes(desiredItemSelectorReturnTypes);
+
+		PortletURL itemSelectorURL = itemSelector.getItemSelectorURL(RequestBackedPortletURLFactoryUtil.create(liferayPortletRequest), eventName, layoutItemSelectorCriterion);
+		%>
 
 		<aui:script sandbox="<%= true %>">
 			var displayPageItemContainer = $('#<portlet:namespace />displayPageItemContainer');
@@ -129,13 +137,13 @@ boolean changeStructure = GetterUtil.getBoolean(request.getAttribute("edit_artic
 								destroyOnHide: true,
 								modal: true
 							},
-							eventName: '<portlet:namespace />selectDisplayPage',
+							eventName: '<%= eventName %>',
 							id: '<portlet:namespace />selectDisplayPage',
 							title: '<liferay-ui:message key="select-page" />',
-							uri: '<%= documentSelectorURL.toString() %>'
+							uri: '<%= itemSelectorURL.toString() %>'
 						},
 						function(event) {
-							pagesContainerInput.val(event.uuid);
+							pagesContainerInput.val(event.value);
 
 							displayPageNameInput.html(event.layoutpath);
 

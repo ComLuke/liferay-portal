@@ -32,6 +32,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import com.liferay.portlet.messageboards.NoSuchThreadFlagException;
@@ -43,6 +45,7 @@ import com.liferay.portlet.messageboards.service.persistence.MBThreadFlagPersist
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2690,8 +2693,9 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 		}
 	}
 
-	protected void cacheUniqueFindersCache(MBThreadFlag mbThreadFlag) {
-		if (mbThreadFlag.isNew()) {
+	protected void cacheUniqueFindersCache(MBThreadFlag mbThreadFlag,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					mbThreadFlag.getUuid(), mbThreadFlag.getGroupId()
 				};
@@ -2896,6 +2900,28 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 			mbThreadFlag.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (mbThreadFlag.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				mbThreadFlag.setCreateDate(now);
+			}
+			else {
+				mbThreadFlag.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!mbThreadFlagModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				mbThreadFlag.setModifiedDate(now);
+			}
+			else {
+				mbThreadFlag.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2907,7 +2933,7 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 				mbThreadFlag.setNew(false);
 			}
 			else {
-				session.merge(mbThreadFlag);
+				mbThreadFlag = (MBThreadFlag)session.merge(mbThreadFlag);
 			}
 		}
 		catch (Exception e) {
@@ -3001,8 +3027,8 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 			MBThreadFlagImpl.class, mbThreadFlag.getPrimaryKey(), mbThreadFlag,
 			false);
 
-		clearUniqueFindersCache(mbThreadFlag);
-		cacheUniqueFindersCache(mbThreadFlag);
+		clearUniqueFindersCache((MBThreadFlag)mbThreadFlagModelImpl);
+		cacheUniqueFindersCache((MBThreadFlag)mbThreadFlagModelImpl, isNew);
 
 		mbThreadFlag.resetOriginalValues();
 
@@ -3028,6 +3054,7 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 		mbThreadFlagImpl.setCreateDate(mbThreadFlag.getCreateDate());
 		mbThreadFlagImpl.setModifiedDate(mbThreadFlag.getModifiedDate());
 		mbThreadFlagImpl.setThreadId(mbThreadFlag.getThreadId());
+		mbThreadFlagImpl.setLastPublishDate(mbThreadFlag.getLastPublishDate());
 
 		return mbThreadFlagImpl;
 	}
@@ -3388,6 +3415,11 @@ public class MBThreadFlagPersistenceImpl extends BasePersistenceImpl<MBThreadFla
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return MBThreadFlagModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

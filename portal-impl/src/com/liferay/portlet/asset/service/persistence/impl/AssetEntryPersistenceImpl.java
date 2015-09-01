@@ -33,6 +33,8 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CacheModel;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 import com.liferay.portal.service.persistence.impl.TableMapper;
 import com.liferay.portal.service.persistence.impl.TableMapperFactory;
@@ -3662,8 +3664,8 @@ public class AssetEntryPersistenceImpl extends BasePersistenceImpl<AssetEntry>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(AssetEntry assetEntry) {
-		if (assetEntry.isNew()) {
+	protected void cacheUniqueFindersCache(AssetEntry assetEntry, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					assetEntry.getGroupId(), assetEntry.getClassUuid()
 				};
@@ -3860,6 +3862,28 @@ public class AssetEntryPersistenceImpl extends BasePersistenceImpl<AssetEntry>
 
 		AssetEntryModelImpl assetEntryModelImpl = (AssetEntryModelImpl)assetEntry;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (assetEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				assetEntry.setCreateDate(now);
+			}
+			else {
+				assetEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!assetEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				assetEntry.setModifiedDate(now);
+			}
+			else {
+				assetEntry.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -3871,7 +3895,7 @@ public class AssetEntryPersistenceImpl extends BasePersistenceImpl<AssetEntry>
 				assetEntry.setNew(false);
 			}
 			else {
-				session.merge(assetEntry);
+				assetEntry = (AssetEntry)session.merge(assetEntry);
 			}
 		}
 		catch (Exception e) {
@@ -4002,8 +4026,8 @@ public class AssetEntryPersistenceImpl extends BasePersistenceImpl<AssetEntry>
 		EntityCacheUtil.putResult(AssetEntryModelImpl.ENTITY_CACHE_ENABLED,
 			AssetEntryImpl.class, assetEntry.getPrimaryKey(), assetEntry, false);
 
-		clearUniqueFindersCache(assetEntry);
-		cacheUniqueFindersCache(assetEntry);
+		clearUniqueFindersCache((AssetEntry)assetEntryModelImpl);
+		cacheUniqueFindersCache((AssetEntry)assetEntryModelImpl, isNew);
 
 		assetEntry.resetOriginalValues();
 
@@ -4951,6 +4975,11 @@ public class AssetEntryPersistenceImpl extends BasePersistenceImpl<AssetEntry>
 		catch (Exception e) {
 			throw processException(e);
 		}
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return AssetEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

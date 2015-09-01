@@ -14,63 +14,37 @@
 
 package com.liferay.dynamic.data.mapping.type.checkbox;
 
-import com.liferay.portlet.dynamicdatamapping.registry.DDMFormFieldRenderer;
-import com.liferay.portlet.dynamicdatamapping.registry.DDMFormFieldType;
-import com.liferay.portlet.dynamicdatamapping.registry.DDMFormFieldValueAccessor;
-import com.liferay.portlet.dynamicdatamapping.registry.DDMFormFieldValueParameterSerializer;
-import com.liferay.portlet.dynamicdatamapping.registry.DDMFormFieldValueRendererAccessor;
-import com.liferay.portlet.dynamicdatamapping.registry.DefaultDDMFormFieldValueParameterSerializer;
-
-import java.util.Locale;
+import com.liferay.dynamic.data.mapping.registry.BaseDDMFormFieldType;
+import com.liferay.dynamic.data.mapping.registry.DDMFormFieldType;
+import com.liferay.dynamic.data.mapping.registry.DDMFormFieldTypeSettings;
 
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Renato Rego
  */
-@Component(immediate = true, service = DDMFormFieldType.class)
-public class CheckboxDDMFormFieldType implements DDMFormFieldType {
+@Component(
+	immediate = true,
+	property = {
+		"ddm.form.field.type.icon=icon-check",
+		"ddm.form.field.type.js.class.name=Liferay.DDM.Field.Checkbox",
+		"ddm.form.field.type.js.module=liferay-ddm-form-field-checkbox",
+		"ddm.form.field.type.name=checkbox"
+	},
+	service = DDMFormFieldType.class
+)
+public class CheckboxDDMFormFieldType extends BaseDDMFormFieldType {
 
 	@Override
-	public DDMFormFieldRenderer getDDMFormFieldRenderer() {
-		return _ddmFormFieldRenderer;
-	}
+	public Class<? extends DDMFormFieldTypeSettings>
+		getDDMFormFieldTypeSettings() {
 
-	@Override
-	public DDMFormFieldValueAccessor<Boolean> getDDMFormFieldValueAccessor(
-		Locale locale) {
-
-		return new CheckboxDDMFormFieldValueAccessor(locale);
-	}
-
-	@Override
-	public DDMFormFieldValueParameterSerializer
-		getDDMFormFieldValueParameterSerializer() {
-
-		return new DefaultDDMFormFieldValueParameterSerializer();
-	}
-
-	@Override
-	public DDMFormFieldValueRendererAccessor
-		getDDMFormFieldValueRendererAccessor(Locale locale) {
-
-		return new CheckboxDDMFormFieldValueRendererAccessor(
-			getDDMFormFieldValueAccessor(locale));
+		return CheckboxDDMFormFieldTypeSettings.class;
 	}
 
 	@Override
 	public String getName() {
 		return "checkbox";
 	}
-
-	@Reference(service = CheckboxDDMFormFieldRenderer.class, unbind = "-")
-	protected void setDDMFormFieldRenderer(
-		DDMFormFieldRenderer ddmFormFieldRenderer) {
-
-		_ddmFormFieldRenderer = ddmFormFieldRenderer;
-	}
-
-	private DDMFormFieldRenderer _ddmFormFieldRenderer;
 
 }

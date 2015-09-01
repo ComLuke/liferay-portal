@@ -36,11 +36,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.WorkflowDefinitionLink;
 import com.liferay.portal.model.impl.WorkflowDefinitionLinkImpl;
 import com.liferay.portal.model.impl.WorkflowDefinitionLinkModelImpl;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.WorkflowDefinitionLinkPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2173,8 +2176,8 @@ public class WorkflowDefinitionLinkPersistenceImpl extends BasePersistenceImpl<W
 	}
 
 	protected void cacheUniqueFindersCache(
-		WorkflowDefinitionLink workflowDefinitionLink) {
-		if (workflowDefinitionLink.isNew()) {
+		WorkflowDefinitionLink workflowDefinitionLink, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					workflowDefinitionLink.getGroupId(),
 					workflowDefinitionLink.getCompanyId(),
@@ -2350,6 +2353,30 @@ public class WorkflowDefinitionLinkPersistenceImpl extends BasePersistenceImpl<W
 
 		WorkflowDefinitionLinkModelImpl workflowDefinitionLinkModelImpl = (WorkflowDefinitionLinkModelImpl)workflowDefinitionLink;
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (workflowDefinitionLink.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				workflowDefinitionLink.setCreateDate(now);
+			}
+			else {
+				workflowDefinitionLink.setCreateDate(serviceContext.getCreateDate(
+						now));
+			}
+		}
+
+		if (!workflowDefinitionLinkModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				workflowDefinitionLink.setModifiedDate(now);
+			}
+			else {
+				workflowDefinitionLink.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -2361,7 +2388,7 @@ public class WorkflowDefinitionLinkPersistenceImpl extends BasePersistenceImpl<W
 				workflowDefinitionLink.setNew(false);
 			}
 			else {
-				session.merge(workflowDefinitionLink);
+				workflowDefinitionLink = (WorkflowDefinitionLink)session.merge(workflowDefinitionLink);
 			}
 		}
 		catch (Exception e) {
@@ -2451,8 +2478,9 @@ public class WorkflowDefinitionLinkPersistenceImpl extends BasePersistenceImpl<W
 			workflowDefinitionLink.getPrimaryKey(), workflowDefinitionLink,
 			false);
 
-		clearUniqueFindersCache(workflowDefinitionLink);
-		cacheUniqueFindersCache(workflowDefinitionLink);
+		clearUniqueFindersCache((WorkflowDefinitionLink)workflowDefinitionLinkModelImpl);
+		cacheUniqueFindersCache((WorkflowDefinitionLink)workflowDefinitionLinkModelImpl,
+			isNew);
 
 		workflowDefinitionLink.resetOriginalValues();
 
@@ -2843,6 +2871,11 @@ public class WorkflowDefinitionLinkPersistenceImpl extends BasePersistenceImpl<W
 		}
 
 		return count.intValue();
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return WorkflowDefinitionLinkModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

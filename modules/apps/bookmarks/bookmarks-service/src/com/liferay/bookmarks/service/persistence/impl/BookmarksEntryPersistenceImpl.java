@@ -41,11 +41,14 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.model.CacheModel;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.impl.BasePersistenceImpl;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11877,8 +11880,9 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 		}
 	}
 
-	protected void cacheUniqueFindersCache(BookmarksEntry bookmarksEntry) {
-		if (bookmarksEntry.isNew()) {
+	protected void cacheUniqueFindersCache(BookmarksEntry bookmarksEntry,
+		boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					bookmarksEntry.getUuid(), bookmarksEntry.getGroupId()
 				};
@@ -12045,6 +12049,29 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 			bookmarksEntry.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (bookmarksEntry.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				bookmarksEntry.setCreateDate(now);
+			}
+			else {
+				bookmarksEntry.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!bookmarksEntryModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				bookmarksEntry.setModifiedDate(now);
+			}
+			else {
+				bookmarksEntry.setModifiedDate(serviceContext.getModifiedDate(
+						now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -12056,7 +12083,7 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 				bookmarksEntry.setNew(false);
 			}
 			else {
-				session.merge(bookmarksEntry);
+				bookmarksEntry = (BookmarksEntry)session.merge(bookmarksEntry);
 			}
 		}
 		catch (Exception e) {
@@ -12268,7 +12295,7 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 			bookmarksEntry, false);
 
 		clearUniqueFindersCache(bookmarksEntry);
-		cacheUniqueFindersCache(bookmarksEntry);
+		cacheUniqueFindersCache(bookmarksEntry, isNew);
 
 		bookmarksEntry.resetOriginalValues();
 
@@ -12301,6 +12328,7 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 		bookmarksEntryImpl.setDescription(bookmarksEntry.getDescription());
 		bookmarksEntryImpl.setVisits(bookmarksEntry.getVisits());
 		bookmarksEntryImpl.setPriority(bookmarksEntry.getPriority());
+		bookmarksEntryImpl.setLastPublishDate(bookmarksEntry.getLastPublishDate());
 		bookmarksEntryImpl.setStatus(bookmarksEntry.getStatus());
 		bookmarksEntryImpl.setStatusByUserId(bookmarksEntry.getStatusByUserId());
 		bookmarksEntryImpl.setStatusByUserName(bookmarksEntry.getStatusByUserName());
@@ -12666,6 +12694,11 @@ public class BookmarksEntryPersistenceImpl extends BasePersistenceImpl<Bookmarks
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return BookmarksEntryModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**

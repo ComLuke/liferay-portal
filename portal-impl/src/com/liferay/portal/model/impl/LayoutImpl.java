@@ -808,6 +808,11 @@ public class LayoutImpl extends LayoutBaseImpl {
 	}
 
 	@Override
+	public boolean hasSetModifiedDate() {
+		return true;
+	}
+
+	@Override
 	public boolean includeLayoutContent(
 			HttpServletRequest request, HttpServletResponse response)
 		throws Exception {
@@ -1073,15 +1078,6 @@ public class LayoutImpl extends LayoutBaseImpl {
 	@Override
 	public boolean isTypeURL() {
 		if (getType().equals(LayoutConstants.TYPE_URL)) {
-			return true;
-		}
-
-		return false;
-	}
-
-	@Override
-	public boolean isTypeUserPersonalPanel() {
-		if (getType().equals(LayoutConstants.TYPE_USER_PERSONAL_PANEL)) {
 			return true;
 		}
 

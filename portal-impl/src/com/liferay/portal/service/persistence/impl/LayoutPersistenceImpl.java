@@ -40,11 +40,14 @@ import com.liferay.portal.model.MVCCModel;
 import com.liferay.portal.model.impl.LayoutImpl;
 import com.liferay.portal.model.impl.LayoutModelImpl;
 import com.liferay.portal.security.permission.InlineSQLHelperUtil;
+import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.ServiceContextThreadLocal;
 import com.liferay.portal.service.persistence.LayoutPersistence;
 
 import java.io.Serializable;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -7898,8 +7901,8 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 		}
 	}
 
-	protected void cacheUniqueFindersCache(Layout layout) {
-		if (layout.isNew()) {
+	protected void cacheUniqueFindersCache(Layout layout, boolean isNew) {
+		if (isNew) {
 			Object[] args = new Object[] {
 					layout.getUuid(), layout.getGroupId(),
 					layout.getPrivateLayout()
@@ -8224,6 +8227,28 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 			layout.setUuid(uuid);
 		}
 
+		ServiceContext serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+		Date now = new Date();
+
+		if (isNew && (layout.getCreateDate() == null)) {
+			if (serviceContext == null) {
+				layout.setCreateDate(now);
+			}
+			else {
+				layout.setCreateDate(serviceContext.getCreateDate(now));
+			}
+		}
+
+		if (!layoutModelImpl.hasSetModifiedDate()) {
+			if (serviceContext == null) {
+				layout.setModifiedDate(now);
+			}
+			else {
+				layout.setModifiedDate(serviceContext.getModifiedDate(now));
+			}
+		}
+
 		Session session = null;
 
 		try {
@@ -8235,7 +8260,7 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 				layout.setNew(false);
 			}
 			else {
-				session.merge(layout);
+				layout = (Layout)session.merge(layout);
 			}
 		}
 		catch (Exception e) {
@@ -8435,8 +8460,8 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 		EntityCacheUtil.putResult(LayoutModelImpl.ENTITY_CACHE_ENABLED,
 			LayoutImpl.class, layout.getPrimaryKey(), layout, false);
 
-		clearUniqueFindersCache(layout);
-		cacheUniqueFindersCache(layout);
+		clearUniqueFindersCache((Layout)layoutModelImpl);
+		cacheUniqueFindersCache((Layout)layoutModelImpl, isNew);
 
 		layout.resetOriginalValues();
 
@@ -8484,6 +8509,7 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 		layoutImpl.setLayoutPrototypeUuid(layout.getLayoutPrototypeUuid());
 		layoutImpl.setLayoutPrototypeLinkEnabled(layout.isLayoutPrototypeLinkEnabled());
 		layoutImpl.setSourcePrototypeLayoutUuid(layout.getSourcePrototypeLayoutUuid());
+		layoutImpl.setLastPublishDate(layout.getLastPublishDate());
 
 		return layoutImpl;
 	}
@@ -8842,6 +8868,11 @@ public class LayoutPersistenceImpl extends BasePersistenceImpl<Layout>
 	@Override
 	protected Set<String> getBadColumnNames() {
 		return _badColumnNames;
+	}
+
+	@Override
+	protected Map<String, Integer> getTableColumnsMap() {
+		return LayoutModelImpl.TABLE_COLUMNS_MAP;
 	}
 
 	/**
