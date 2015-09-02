@@ -20,24 +20,24 @@ import com.liferay.portal.kernel.search.BooleanClause;
 import com.liferay.portal.kernel.search.BooleanClauseFactoryUtil;
 import com.liferay.portal.kernel.search.BooleanClauseOccur;
 import com.liferay.portal.kernel.search.BooleanQuery;
-import com.liferay.portal.kernel.search.BooleanQueryFactoryUtil;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Hits;
 import com.liferay.portal.kernel.search.QueryConfig;
 import com.liferay.portal.kernel.search.SearchContext;
+import com.liferay.portal.kernel.search.generic.BooleanQueryImpl;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.KeyValuePair;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portlet.dynamicdatalists.model.DDLRecord;
-import com.liferay.portlet.dynamicdatalists.model.DDLRecordSet;
-import com.liferay.portlet.dynamicdatalists.service.DDLRecordLocalServiceUtil;
-import com.liferay.portlet.dynamicdatalists.service.DDLRecordSetLocalServiceUtil;
-import com.liferay.portlet.dynamicdatamapping.model.DDMStructure;
-import com.liferay.portlet.dynamicdatamapping.render.DDMFormFieldValueRenderer;
-import com.liferay.portlet.dynamicdatamapping.render.DDMFormFieldValueRendererRegistryUtil;
-import com.liferay.portlet.dynamicdatamapping.service.DDMStructureLocalServiceUtil;
-import com.liferay.portlet.dynamicdatamapping.util.DDMIndexerUtil;
+import com.liferay.dynamic.data.lists.model.DDLRecord;
+import com.liferay.dynamic.data.lists.model.DDLRecordSet;
+import com.liferay.dynamic.data.lists.service.DDLRecordLocalServiceUtil;
+import com.liferay.dynamic.data.lists.service.DDLRecordSetLocalServiceUtil;
+import com.liferay.dynamic.data.mapping.model.DDMStructure;
+import com.liferay.dynamic.data.mapping.render.DDMFormFieldValueRenderer;
+import com.liferay.dynamic.data.mapping.render.DDMFormFieldValueRendererRegistryUtil;
+import com.liferay.dynamic.data.mapping.service.DDMStructureLocalServiceUtil;
+import com.liferay.dynamic.data.mapping.util.DDMIndexerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,8 +99,7 @@ public class DDMDataSourceImpl implements DDMDataSource {
 		searchContext.setAttribute("recordSetId", recordSet.getRecordSetId());
 		searchContext.setAttribute("paginationType", "none");
 
-		BooleanQuery booleanQuery = BooleanQueryFactoryUtil.create(
-			searchContext);
+		BooleanQuery booleanQuery =  new BooleanQueryImpl();
 
 		BooleanClauseOccur occur;
 
@@ -112,8 +111,7 @@ public class DDMDataSourceImpl implements DDMDataSource {
 		}
 
 		if (Validator.isNotNull(keywords)) {
-			BooleanQuery keyQuery = BooleanQueryFactoryUtil.create(
-				searchContext);
+			BooleanQuery keyQuery =  new BooleanQueryImpl();
 
 			keyQuery.addTerm(keyFieldName, keywords, like);
 
